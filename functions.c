@@ -743,6 +743,7 @@ void execute_BRK(void)
 	PUSH(NES->P | 0x30);
 	/* Flag I is set */
 	NES->P |= FLAG_I;
+	NES->PC = (read_addr(NES, 0xFFFF) << 8) | read_addr(NES, 0xFFFE);
 }
 
 

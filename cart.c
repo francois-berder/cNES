@@ -47,7 +47,7 @@ int load_cart(Cartridge* cart, const char *filename)
 	/* parsing header */
 	cart->prg_rom.size = 16 * (KiB) * header[4];
 	cart->prg_ram.size = 8 * (KiB) * header[8];
-	cart->chr.size = 16 * (KiB) * header[5];
+	cart->chr_rom.size = 8 * (KiB) * header[5]; // Pattern table data (if any)
 	mapper = (header[7] & 0xF0) | ((header[6] & 0xF0) >> 4);
 
 	/* Flags 6 */
@@ -81,8 +81,8 @@ int load_cart(Cartridge* cart, const char *filename)
 	fread(cart->prg_rom.data, 1, cart->prg_rom.size, rom);
 
 	/* loading data intp chr_rom */
-	cart->chr.data = (uint8_t*) malloc(cart->chr.size);
-	fread(cart->chr.data, 1, cart->chr.size, rom);
+	cart->chr_rom.data = (uint8_t*) malloc(cart->chr_rom.size);
+	fread(cart->chr_rom.data, 1, cart->chr_rom.size, rom);
 
 	fclose(rom);
 

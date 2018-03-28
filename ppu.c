@@ -1,5 +1,8 @@
-#include "cpu.h"
 #include "ppu.h"
+
+// Place in cpu.h??  -- should be raw address pointers (can change later)
+// #define PPU_CTRL read_addr(NES, 0x2000)
+// Later add _PPU_IO_BUS (PPUGenLatch in FCEUX)
 
 int pixelBuffer[] = {0};
 
@@ -34,6 +37,7 @@ static const unsigned int palette[64] = {
 	0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000, 0x000000
 };
 
+/*
 static const RGB ppu_color_pallete[64][3] = {
 	{0x7c, 0x7c, 0x7c},{0x00, 0x00, 0xfc},{0x00, 0x00, 0xbc},{0x44, 0x28, 0xbc},
 	{0x94, 0x00, 0x84},{0xa8, 0x00, 0x20},{0xa8, 0x10, 0x00},{0x88, 0x14, 0x00},
@@ -52,12 +56,15 @@ static const RGB ppu_color_pallete[64][3] = {
 	{0xf8, 0xd8, 0x78},{0xd8, 0xf8, 0x78},{0xb8, 0xf8, 0xb8},{0xb8, 0xf8, 0xd8},
 	{0x00, 0xfc, 0xfc},{0xf8, 0xd8, 0xf8},{0x00, 0x00, 0x00},{0x00, 0x00, 0x00}
 };
+*/
 
-void ppu_init()
+PPU_Struct *ppu_init()
 {
-	PPU_Struct* ppu = malloc(sizeof(struct PPU_Struct);
+	PPU_Struct* ppu = malloc(sizeof(PPU_Struct));
 	ppu->PPU_CTRL = 0x00;
 	ppu->PPU_MASK = 0x00;
+	ppu->PPU_MASK = 0x00;
+	ppu->OAM_ADDR = 0x00;;
 	ppu->PPU_STATUS = 0xA0;
 	return ppu;
 }
@@ -87,7 +94,7 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 	case (0x2000):
 		/* PPU CTRL */
 		p->PPU_CTRL = data;
-		write_2000(data);
+		write_2000(data, p);
 		break;
 	case (0x2001):
 		/* PPU MASK */
@@ -103,32 +110,39 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 		break;
 	case (0x2005):
 		/* PPU SCROLL (write * 2) */
-		write_2005(data);
+		write_2005(data, p);
 		break;
 	case (0x2006):
 		/* PPU ADDR (write * 2) */
-		write_2006(data);
+		write_2006(data, p);
 		break;
 	case (0x2007):
 		/* PPU DATA */
 		p->PPU_DATA = data;
-		write_2007();
+		write_2007(data, p);
 		break;
 	}
 }
 
+/* Read Functions */
 
 uint8_t read_2002(uint16_t addr, PPU_Struct *p)
 {
 	uint8_t val = 0;
-	p->togge_w = false;
+	p->toggle_w = false;
 	return val;
 }
 
+/* Write Functions */
 void write_2000(uint8_t data, PPU_Struct *p)
 {
 	p->vram_tmp_addr &= ~(0x0C00); /* Clear bits to be set */
 	p->vram_tmp_addr |= (data & 0x03) << 10;
+}
+
+inline void write_2003(uint8_t data, PPU_Struct *p)
+{
+	p->OAM_ADDR = data;
 }
 
 void write_2004(uint8_t data, PPU_Struct *p)
@@ -144,12 +158,12 @@ void write_2005(uint8_t data, PPU_Struct *p)
 	if (!p->toggle_w) {
 		// First Write
 		p->vram_tmp_addr &= ~0x001F; /* Clear bits that are to be set */
-		p->vram_tmp_addr |= ((data & 0xF8) >> 3);
+		p->vram_tmp_addr |= (data >> 3);
 		p->fineX = data & 0x07; /* same as data % 8 */
 	} else {
 		// Second Write
 		p->vram_tmp_addr &= ~0x73E0; /* Clear bits that are to be set */
-		p->vram_tmp_addr |= (data & 0x00FF); /* Lower byte */ //Might be wrong
+		p->vram_tmp_addr |= ((data & 248) << 5) | ((data & 7) << 12);
 		p->PPU_SCROLL = p->vram_tmp_addr;
 	}
 	p->toggle_w = !p->toggle_w;
@@ -159,12 +173,12 @@ void write_2005(uint8_t data, PPU_Struct *p)
 void write_2006(uint8_t data, PPU_Struct *p)
 {
 	// Valid address = 0x0000 to 0x3FFF
-	if (!toggle_w) {
+	if (!p->toggle_w) {
 		p->vram_tmp_addr &= ~(0x7F00); /* Clear Higher Byte */
 		p->vram_tmp_addr |= (uint16_t) ((data & 0x3F) << 8); /* 14th bit should be clear */
 	} else {
 		p->vram_tmp_addr &= ~(0x00FF); /* Clear Lower Byte */
-		p->vram_tmp_addr |= (data & 0xFF); /* Lower byte */
+		p->vram_tmp_addr |= data; /* Lower byte */
 		p->vram_addr = p->vram_tmp_addr;
 		p->PPU_ADDR = p->vram_tmp_addr;
 	}
@@ -174,28 +188,38 @@ void write_2006(uint8_t data, PPU_Struct *p)
 
 void write_2007(uint8_t data, PPU_Struct *p)
 {
-	ppu->RAM[vram_addr] = data; // Think that is correct
-	vram_addr += ppu_vram_addr_inc();
+	p->VRAM[p->vram_addr] = data; // Think that is correct
+	p->vram_addr += ppu_vram_addr_inc(p);
 }
 
-/* FUNCTION FOR PPU MEM */
+
+/* FUNCTION FOR PPU MEM 
 uint8_t read_PPU(uint16_t addr, PPU_Struct *p)
 {
 	if (addr < 0x1000) {
 		return p->PPU->MEM[addr];
-	} /* else if ... */
+	}  / else if ... /
 	else {
 		return p->PPU->MEM[addr];
 	}
 }
+*/
 
-
-/***************************
- * PPU_CTRL FUNCTIONS      * 
- * *************************/
-uint16_t ppu_nametable_addr()
+/**
+ * PPU_CTRL
+ */
+uint8_t ppu_vram_addr_inc(PPU_Struct *p)
 {
-	switch(PPU_CTRL & 0x03) {
+	if ((p->PPU_CTRL & 0x04) == 0) {
+		return 1;
+	} else {
+		return 32;
+	}
+}
+
+uint16_t ppu_base_nt_address(PPU_Struct *p)
+{
+	switch(p->PPU_CTRL & 0x03) {
 	case 0:
 		return 0x2000;
 	case 1:
@@ -209,197 +233,7 @@ uint16_t ppu_nametable_addr()
 	}
 }
 
-uint8_t ppu_vram_addr_inc()
-{
-	if ((PPU_CTRL & 0x04) == 0) {
-		return 1;
-	} else {
-		return 32;
-	}
-}
+/*************************
+ * RENDERING             *
+ * ***********************/
 
-uint16_t ppu_sprite_pattern_table_addr()
-{
-	/* Sprite Table Bit (3) */
-	if ((PPU_CTRL & 0x08) == 0) {
-		return 0x0000;
-	} else {
-		return 0x1000;
-	}
-}
-
-uint16_t ppu_bg_pattern_table_addr()
-{
-	/* Pattern Table Bit (4) */
-	if ((PPU_CTRL & 0x10) == 0) {
-		return 0x0000;
-	} else {
-		return 0x1000;
-	}
-}
-
-uint8_t ppu_sprite_height()
-{
-	/* Sprite Size (Height) Bit (5)*/
-	if ((PPU_CTRL & 0x20) == 0) {
-		return 8;
-	} else {
-		return 16;
-	}
-}
-
-bool ppu_gen_nmi()
-{
-	/* ADD WHAT FUNCTION DOES */
-}
-
-
-/***************************
- * PPU_MASK FUNCTIONS      * 
- * *************************/
-bool ppu_show_greyscale()
-{
-	return (PPU_MASK & 0x01);
-}
-
-
-bool ppu_bg_show_left_8()
-{
-	return (PPU_MASK & 0x02);
-}
-
-
-bool ppu_sprite_show_left_8()
-{
-	return (PPU_MASK & 0x04);
-}
-
-
-bool ppu_show_bg()
-{
-	return (PPU_MASK & 0x08);
-}
-
-
-bool ppu_show_sprite()
-{
-	return (PPU_MASK & 0x10);
-}
-
-
-bool ppu_intense_reds()
-{
-	return (PPU_MASK & 0x20);
-}
-
-
-bool ppu_intense_greens()
-{
-	return (PPU_MASK & 0x40);
-}
-
-
-bool ppu_intense_blues()
-{
-	return (PPU_MASK & 0x80);
-}
-
-
-/***************************
- * PPU_STATUS FUNCTIONS    * 
- * *************************/
-
-bool ppu_sprite_overflow()
-{
-	return (PPU_STATUS & 0x20);
-}
-
-
-bool ppu_sprite_0_hit()
-{
-	return (PPU_STATUS & 0x40);
-}
-
-
-bool ppu_vblank()
-{
-	return (PPU_STATUS & 0x80); /* 1 = yes, 0 = no */
-}
-
-/***************************
- * PPU HELP FUNCTIONS      * 
- * *************************/
-// v = vram_addr & t = vram_tmp_addr
-
-// Got formula from nesdev.com -- PPU_scrolling
-uint8_t get_nametable_byte(uint16_t v)
-{
-	return (PPU->MEM[(0x2000 | (v & 0x0FFF))]); /* Handles mirrored address space */
-}
-
-
-// Got formula from nesdev.com -- PPU_scrolling
-uint8_t get_attr_table_byte(uint16_t v)
-{
-	return (PPU->MEM[ 0x23C0 | (v & 0x3C0) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)]);
-}
-
-
-// Fetch Pattern Table Byte - y = scanline
-uint8_t get_pattern_table_byte(uint16_t v, uint8_t y);
-{
-	const uint16_t fine_Y_mask = 0x7000;
-	return (PPU->MEM[ppu_bg_pattern_table_addr() + y |= (get_nametable_byte(v) << 4) | ((v & fine_Y_mask) >> 12)]);
-}
-
-// Low Bit
-uint8_t get_pattern_table_bit0(uint8_t fine_x, uint16_t addr)
-{
-	uint8_t val = get_pattern_table_byte(addr, PPU->scanline);
-	return ((val >> (7 - fine_x)) & 0x01);
-}
-
-
-// High Bit
-uint8_t get_pattern_table_bit1(uint16_t v)
-{
-	uint8_t val = get_pattern_table_byte(uint16_t addr + 8);
-	return ((val >> (7 - x)) & 0x01);
-}
-
-uint8_t merge_2_bits(uint8_t low, uint8_t high)
-{
-	return ((high << 1) | low);
-}
-
-/***************************
- * PPU RENDER FUNCTIONS    * 
- * *************************/
- void sprite_render()
-{
-	//
-}
-
- void bg_render(int scanline)
-{
-	//fetch nametable byte
-	vram_addr = ppu_nametable_addr();
-	int name_addr = get_nametable_byte(vram_addr);
-	int attr_addr = get_attr_table_byte(vram_addr);
-	int bg_color = read_PPU(0x3F00);
-	pixel_color = 0;
-
-	for (i = 0; i < 256; ++i) {
-		/* Setting Pixel Colour */
-		pixel_color = bg_color;
-		bg_color = 0;
-		if (ppu_show_bg() == 1) {
-			if (ppu_show_left8px() == 0) {
-				// fill with a blank color
-			} else {
-				// render all pixels
-			}
-		}
-
-	//fetch attribute table byte
-}

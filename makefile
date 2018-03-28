@@ -3,7 +3,10 @@ CFLAGS = -Wall -std=c99
 
 all: emu debug_emu
 
-cpu.o: cpu.c cpu.h
+ppu.o: ppu.c ppu.h cpu.h
+	$(CC) $(CFLAGS) -c ppu.c
+
+cpu.o: cpu.c cpu.h ppu.h
 	$(CC) $(CFLAGS) -c cpu.c
 
 cart.o: cart.c cart.h
@@ -24,8 +27,8 @@ opcode_execute.o: opcode_execute.c opcode_execute.h functions_generic.h function
 emu.o: emu.c cpu.h cart.h opcode_execute.h
 	$(CC) $(CFLAGS) -c emu.c
 
-emu: emu.o cpu.o cart.o mappers.o functions_generic.o functions.o opcode_execute.o
-	$(CC) -o emu emu.o cpu.o cart.o mappers.o functions_generic.o functions.o opcode_execute.o
+emu: emu.o cpu.o cart.o mappers.o functions_generic.o functions.o opcode_execute.o ppu.o
+	$(CC) -o emu emu.o cpu.o cart.o mappers.o functions_generic.o functions.o opcode_execute.o ppu.o
 
 functions_debug.o: functions_debug.c functions.h functions_generic.h
 	$(CC) $(CFLAGS) -c functions_debug.c
@@ -36,8 +39,8 @@ opcode_debug.o: opcode_debug.c opcode_debug.h functions_generic.h functions.h
 debug_emu.o: debug_emu.c cpu.h opcode_debug.h
 	$(CC) $(CFLAGS) -c debug_emu.c
 
-debug_emu: debug_emu.o cpu.o cart.o mappers.o functions_generic.o functions_debug.o opcode_debug.o
-	$(CC) -o debug_emu debug_emu.o cpu.o cart.o mappers.o functions_generic.o functions_debug.o opcode_debug.o
+debug_emu: debug_emu.o cpu.o cart.o mappers.o functions_generic.o functions_debug.o opcode_debug.o ppu.o
+	$(CC) -o debug_emu debug_emu.o cpu.o cart.o mappers.o functions_generic.o functions_debug.o opcode_debug.o ppu.o
 
 clean:
 	rm *.o

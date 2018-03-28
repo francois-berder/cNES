@@ -28,7 +28,7 @@ typedef struct {
 typedef struct Cartridge {
 	MirrorType mirror_mode;
 	VideoType video_mode;
-	Memory prg_rom, prg_ram, chr;
+	Memory prg_rom, prg_ram, chr_rom;
 } Cartridge;
 
 
