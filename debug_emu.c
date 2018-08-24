@@ -7,6 +7,7 @@
 #include "cart.h"
 #include "ppu.h"
 
+//const char *filename = "nestest.nes";
 const char *filename = "super_mario_bros.nes";
 //const char *filename = "donkey_kong.nes";
 
@@ -63,12 +64,14 @@ int main(int argc, char **argv)
 
 	// CURRENTLY TESTING PPU READ/WRITE + INTERACTIONS W/CPU ($2000 - $2007)
 	int i = 0;
-	
-	while (i < 104615) {
-		Debug_6502(NES->PC);
-		Debug_6502(NES->PC);
-		Debug_6502(NES->PC);
+	//5005 104615
+	//NES->PC = 0xC000;
+	while (i < 32598) {
+		// 3 : 1 PPU to CPU ratio
 		ppu_step(PPU);
+		ppu_step(PPU);
+		ppu_step(PPU);
+		Debug_6502(NES->PC);
 		RET_NES_CPU();
 		//debug_ppu();
 		++i;
@@ -89,6 +92,6 @@ int main(int argc, char **argv)
 	write_PPU_Reg(0x2007, 0x24, PPU);
 	*/
 	// Pattern table viewer
-	//PPU_PT_DEBUG();
+	PPU_PT_DEBUG();
 	return 0;
 }

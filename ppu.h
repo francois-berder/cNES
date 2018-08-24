@@ -2,6 +2,7 @@
 #define __NES_PPU__
 
 #include <stdbool.h>
+#include <stdio.h>
 #include "cpu.h"
 
 #define PPUCTRL_ADDR 0x2000 /* ADD Define addr consts???? */
@@ -36,6 +37,7 @@ typedef struct {
 	uint16_t vram_tmp_addr; /* Temp VRAM address - LoopyT (t) */
 	uint8_t fineX; /* Fine X Scroll - only lower 4 bits are used */
 	bool toggle_w; /* 1st/2nd Write toggle */
+	uint8_t temp;
 
 	/* Latches & Shift registers */
 	uint8_t pt_lo_latch; /* Most recent fetch pt_lo fetch */
@@ -46,6 +48,8 @@ typedef struct {
 	uint8_t at_byte_next; /* Next byte for at byte (pixels 9 - 16 in the pipeline) */
 
 	//int palette[4]; /* Stores the 4 colour palette */
+	bool RESET_1;
+	bool RESET_2;
 
 	uint32_t scanline; /* Pre-render = 261, visible = 0 - 239, post-render 240 - 260 */
 	uint32_t cycle; /* PPU Cycles, each PPU mem access takes 2 cycles */
@@ -58,7 +62,7 @@ static const unsigned int palette[64];
 /* Initialise Function */
 PPU_Struct *PPU; /* Global NES PPU Pointer */
 PPU_Struct *ppu_init();
-void ppu_reset(int stage); /* Emulates reset/warm-up of PPU */
+void ppu_reset(int start, PPU_Struct *p); /* Emulates reset/warm-up of PPU */
 
 /* Read & Write Functions */
 //uint8_t read_PPU();

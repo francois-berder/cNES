@@ -67,26 +67,26 @@ PPU_Struct *ppu_init()
 	ppu->OAM_ADDR = 0x00;;
 	ppu->PPU_STATUS = 0x00; // Had it on A0 before
 
+	ppu->RESET_1 = false;
+	ppu->RESET_2 = false;
 	ppu->cycle = 0;
 	ppu->scanline = 240;
 	return ppu;
 }
 
 // Reset/Warm-up function, clears and sets VBL flag at certain CPU cycles
-void ppu_reset(int stage)
+void ppu_reset(int start, PPU_Struct *p)
 {
-	if (stage == 0) {
+	if (start && !p->RESET_1 && !p->RESET_2) {
 		p->PPU_STATUS &= ~(0x80);  // clear VBL flag if set
-		satge++;
-	}
-	else if (stage == 1 && (NES->Cycle >= 0x27384)) {
+		p->RESET_1 = true;
+	} else if (p->RESET_1 && (NES->Cycle >= 27383)) {
 		p->PPU_STATUS |= 0x80;
-		stage++;
-	}
-	else if (stage == 2 && (NES->Cycle >= 0x57184)) {
+		p->RESET_1 = false;
+		p->RESET_2 = true;
+	} else if (p->RESET_2 && (NES->Cycle >= 57164)) {
 		p->PPU_STATUS |= 0x80;
-		//stage++;     no needed due to #undef - should exit function
-#undef __RESET__
+		p->RESET_2 = true;
 	}
 }
 
@@ -149,9 +149,11 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 
 uint8_t read_2002(PPU_Struct *p)
 {
-	p->PPU_STATUS &= ~ (0x80); // Clear VBL flag
+	p->temp = p->PPU_STATUS;
+	p->PPU_STATUS &= ~(0x80);
 	p->toggle_w = false; // Clear latch used by PPUSCROLL & PPUADDR
-	return p->PPU_STATUS;
+	return p->temp;
+	//p->PPU_STATUS &= ~(0x80);
 }
 
 /* Write Functions */
@@ -273,9 +275,9 @@ void ppu_tick(PPU_Struct *p)
 
 void ppu_step(PPU_Struct *p)
 {
-#ifdef __RESET__
-	ppu_reset(0);
-#endif
+//#ifdef __RESET__
+	ppu_reset(1, p);
+//#endif
 
 	ppu_tick(p); // Idle cycle thus can run tick to increment cycle from 0 to 1 initially
 
