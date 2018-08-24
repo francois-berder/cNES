@@ -93,5 +93,7 @@ void execute_SEI(CPU_6502 *NESCPU);
 
 void execute_BRK(void);
 void execute_NOP(void);
+void execute_IRQ(void);
+void execute_NMI(void);
 
 #endif /* __6502_FUNCTIONS__ */

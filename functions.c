@@ -769,3 +769,29 @@ void execute_NOP(void)
 {
 	;
 }
+
+/* Non opcode interrupts */
+void execute_IRQ(void)
+{
+	/* PC is pushed onto stack, high byte first */
+	PUSH((uint8_t) ((NES->PC + 2) >> 8)); /* Push PCH (PC High byte onto stack) */
+	PUSH((uint8_t) (NES->PC + 2)); /* Push PCL (PC Low byte onto stack) */
+	/* PUSH Staus Reg - w/ bits 4 & 5 clear */
+	PUSH(NES->P & ~(0x30));
+	/* Flag I is set */
+	NES->P |= FLAG_I;
+	NES->PC = (read_addr(NES, 0xFFFF) << 8) | read_addr(NES, 0xFFFE);
+}
+
+
+void execute_NMI(void)
+{
+	/* PC is pushed onto stack, high byte first */
+	PUSH((uint8_t) (NES->PC >> 8)); /* Push PCH (PC High byte onto stack) */
+	PUSH((uint8_t) NES->PC); /* Push PCL (PC Low byte onto stack) */
+	/* PUSH Staus Reg - w/ bits 4 & 5 clear */
+	PUSH(NES->P & ~(0x30));
+	/* Flag I is set */
+	NES->P |= FLAG_I;
+	NES->PC = (read_addr(NES, 0xFFFB) << 8) | read_addr(NES, 0xFFFA);
+}
