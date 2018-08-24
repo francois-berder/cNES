@@ -18,7 +18,7 @@ typedef struct {
 extern unsigned int pixel_color;
 
 typedef struct {
-	/* Registers */
+	/* Registers  - maybe make these pointers to the CPU mem space */
 	uint8_t PPU_CTRL;   /* $2000 */
 	uint8_t PPU_MASK;   /* $2001 */
 	uint8_t PPU_STATUS; /* $2002 */
@@ -34,16 +34,21 @@ typedef struct {
 	/* BACKROUND */
 	uint16_t vram_addr; /* VRAM address - LoopyV (v) */
 	uint16_t vram_tmp_addr; /* Temp VRAM address - LoopyT (t) */
-	uint16_t bit_L; /* Bitmap low - Shift Reg */
-	uint16_t bit_H; /* Bitmap low - Shift Reg */
-	uint8_t pal_L; /* Pallette attribute low - Shift reg */
-	uint8_t pal_H; /* Pallette attribute low - Shift reg */
 	uint8_t fineX; /* Fine X Scroll - only lower 4 bits are used */
 	bool toggle_w; /* 1st/2nd Write toggle */
 
-	int palette[4]; /* Stores the 4 colour palette */
+	/* Latches & Shift registers */
+	uint8_t pt_lo_latch; /* Most recent fetch pt_lo fetch */
+	uint8_t pt_hi_latch;
+	uint16_t pt_lo_shift_reg; /* Stores a 16 pixels in the pipeline - 1st 8 pixels to be rendered are in lowest byte */
+	uint16_t pt_hi_shift_reg;
+	uint8_t at_byte_current; /* Current at byte (pixels 1- 8 in the pipeline) */
+	uint8_t at_byte_next; /* Next byte for at byte (pixels 9 - 16 in the pipeline) */
 
-	uint32_t scanline;
+	//int palette[4]; /* Stores the 4 colour palette */
+
+	uint32_t scanline; /* Pre-render = 261, visible = 0 - 239, post-render 240 - 260 */
+	uint32_t cycle; /* PPU Cycles, each PPU mem access takes 2 cycles */
 } PPU_Struct;
 
 /* Global defintions */
@@ -53,13 +58,14 @@ static const unsigned int palette[64];
 /* Initialise Function */
 PPU_Struct *PPU; /* Global NES PPU Pointer */
 PPU_Struct *ppu_init();
+void ppu_reset(int stage); /* Emulates reset/warm-up of PPU */
 
 /* Read & Write Functions */
 //uint8_t read_PPU();
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p); /* For addresses exposed to CPU */
 void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p); /* For addresses exposed to CPU */
 
-uint8_t read_2002(uint16_t addr, PPU_Struct *p);
+uint8_t read_2002(PPU_Struct *p);
 //uint8_t read_2004(uint16_t addr, PPU_Struct *p);
 //uint8_t read_2007(uint16_t addr, PPU_Struct *p);
 
@@ -73,6 +79,7 @@ void write_2007(uint8_t data, PPU_Struct *p); /* PPU_DATA */
 /* PPU_CTRL FUNCTIONS */
 //uint16_t ppu_nametable_addr();
 uint8_t ppu_vram_addr_inc(PPU_Struct *p);
+uint16_t ppu_base_nt_address(PPU_Struct *p);
 //uint16_t ppu_sprite_pattern_table_addr();
 //uint16_t ppu_bg_pattern_table_addr();
 //uint8_t ppu_sprite_height();
@@ -92,6 +99,10 @@ uint8_t ppu_vram_addr_inc(PPU_Struct *p);
 //bool ppu_sprite_overflow();
 //bool ppu_sprite_0_hit();
 //bool ppu_vblank();
+
+
+void ppu_tick(PPU_Struct *p);
+void ppu_step(PPU_Struct *p);
 
 
 #endif /* __NES_PPU__ */

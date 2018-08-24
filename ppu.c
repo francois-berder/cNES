@@ -65,8 +65,29 @@ PPU_Struct *ppu_init()
 	ppu->PPU_MASK = 0x00;
 	ppu->PPU_MASK = 0x00;
 	ppu->OAM_ADDR = 0x00;;
-	ppu->PPU_STATUS = 0xA0;
+	ppu->PPU_STATUS = 0x00; // Had it on A0 before
+
+	ppu->cycle = 0;
+	ppu->scanline = 240;
 	return ppu;
+}
+
+// Reset/Warm-up function, clears and sets VBL flag at certain CPU cycles
+void ppu_reset(int stage)
+{
+	if (stage == 0) {
+		p->PPU_STATUS &= ~(0x80);  // clear VBL flag if set
+		satge++;
+	}
+	else if (stage == 1 && (NES->Cycle >= 0x27384)) {
+		p->PPU_STATUS |= 0x80;
+		stage++;
+	}
+	else if (stage == 2 && (NES->Cycle >= 0x57184)) {
+		p->PPU_STATUS |= 0x80;
+		//stage++;     no needed due to #undef - should exit function
+#undef __RESET__
+	}
 }
 
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
@@ -74,7 +95,7 @@ uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
 	switch (addr) {
 	case (0x2002):
 		/* PPU STATUS */
-		return p->PPU_STATUS;
+		read_2002(p);
 		break;
 	case (0x2004):
 		/* OAM Data (read & write) */
@@ -126,11 +147,11 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 
 /* Read Functions */
 
-uint8_t read_2002(uint16_t addr, PPU_Struct *p)
+uint8_t read_2002(PPU_Struct *p)
 {
-	uint8_t val = 0;
-	p->toggle_w = false;
-	return val;
+	p->PPU_STATUS &= ~ (0x80); // Clear VBL flag
+	p->toggle_w = false; // Clear latch used by PPUSCROLL & PPUADDR
+	return p->PPU_STATUS;
 }
 
 /* Write Functions */
@@ -235,5 +256,42 @@ uint16_t ppu_base_nt_address(PPU_Struct *p)
 
 /*************************
  * RENDERING             *
- * ***********************/
+ *************************/
 
+void ppu_tick(PPU_Struct *p)
+{
+	p->cycle++;
+	if (p->cycle > 340) {
+		p->cycle = 0; /* Reset cycle count to 0, max val = 340 */
+
+		p->scanline++;
+		if (p->scanline > 261) {
+			p->scanline = 0; /* Reset scanline to 0, max val == 261 */
+		}
+	}
+}
+
+void ppu_step(PPU_Struct *p)
+{
+#ifdef __RESET__
+	ppu_reset(0);
+#endif
+
+	ppu_tick(p); // Idle cycle thus can run tick to increment cycle from 0 to 1 initially
+
+	if (p->cycle < 256) {
+		/*
+		switch ((p->cycle - 1) & 0x07) {
+		case 0:
+			// Read nt_byte
+		case 2:
+			// read at_byte
+		case 4:
+			// read pt_lo into pt_latch
+		case 6:
+			// read pt_hi into pt_latch
+			// update shift registers
+		}
+		*/
+	}
+}
