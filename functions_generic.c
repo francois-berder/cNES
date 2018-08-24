@@ -15,10 +15,10 @@
 size_t get_op_IMM(uint8_t *ptr_code)
 {
 	/* Immediate - XXX #Operand */
-	operand = *(ptr_code+1);
+	//operand = (uint8_t) *(ptr_code+1); /* Keeps operand on Zero Page */
+	operand = (uint8_t) read_addr(NES, NES->PC+1);
 	NES->PC += 2; /* Update PC */
 	return operand;
-	//operand = read_addr(NES, NES->PC+1); - future reference CPU overhaul pt2
 }
 
 
@@ -28,6 +28,7 @@ size_t get_op_ZP_offset(uint8_t *ptr_code, uint8_t offset)
 {
 	/* Zero Page X or Y - XXX operand, X/Y */
 	operand = (uint8_t) (*(ptr_code+1) + offset); /* Keeps operand on Zero Page */
+	//operand = (uint8_t) read_addr(NES, (NES->PC + 1 + offset)); //cpu overhaul pt2.
 	NES->PC += 2; /* Update PC */
 	return operand;
 	//operand = read_addr(NES, (uint8_t) ((NES->PC + 1) + offset)); cpu overhaul pt2.
@@ -42,6 +43,7 @@ size_t get_op_ABS_offset(uint8_t *ptr_code, uint8_t offset)
 	operand = ((uint16_t) (*(ptr_code+2) << 8) | *(ptr_code+1));
 	operand = (uint16_t) (operand + offset);
 	NES->PC += 3; /* Update PC */
+	tmp = operand - offset; // Page boundry calc
 	return operand;
 	//operand = fetch_16(NES, (uint16_t) ((NES->PC + 1) + offset)));
 	// causes strange behaviour
@@ -92,6 +94,8 @@ size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU)
 	operand = (uint16_t) (operand << 8) | tmp; /* get little endian */
 	operand = (uint16_t) (NESCPU->Y + operand); /* get target address */
 	NES->PC += 2; /* Update PC */
+
+	tmp = operand - NESCPU->Y; // Page boundy calc
 	return operand;
 }
 
@@ -99,6 +103,12 @@ size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU)
  * most likely due to the code layout
  * will have to look into some more
  */
+
+// Determines if a page cross has occured for a certain instruction
+unsigned PAGE_CROSS(unsigned val1, unsigned val2)
+{
+	return ((val1 & 0xFF00) == (val2 & 0xFF00)) ? 1 : 0;
+}
 
 /***************************
  * STATUS                  *
@@ -112,7 +122,8 @@ void RET_NES_CPU(void)
 	printf("Y:%.2X ", NES->Y);
 	printf("P:%.2X ", NES->P);
 	printf("SP:%.2X ", NES->Stack);
-	printf("PC:%.4X\n", NES->PC);
+	printf("PC:%.4X ", NES->PC);
+	printf("CPU:%.4d\n", NES->Cycle);
 }
 
 /***************************

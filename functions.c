@@ -454,7 +454,9 @@ void execute_ROR(enum MODES address_mode, size_t operand)
 void execute_BCC(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_C) == 0x00) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -465,7 +467,9 @@ void execute_BCC(uint8_t *ptr_code)
 void execute_BCS(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_C) == 0x01) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -476,7 +480,9 @@ void execute_BCS(uint8_t *ptr_code)
 void execute_BEQ(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_Z) == FLAG_Z) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -487,7 +493,9 @@ void execute_BEQ(uint8_t *ptr_code)
 void execute_BMI(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_N) == FLAG_N) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -498,7 +506,9 @@ void execute_BMI(uint8_t *ptr_code)
 void execute_BNE(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_Z) == 0x00) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -509,7 +519,9 @@ void execute_BNE(uint8_t *ptr_code)
 void execute_BPL(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_N) == 0x00) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -520,7 +532,9 @@ void execute_BPL(uint8_t *ptr_code)
 void execute_BVC(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_V) == 0x00) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }
@@ -531,7 +545,9 @@ void execute_BVC(uint8_t *ptr_code)
 void execute_BVS(uint8_t *ptr_code)
 {
 	if ((NES->P & FLAG_V) == FLAG_V) {
+		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
+		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC); // +1 cycle for branch taken, + 1 for page cross
 	}
 	NES->PC += 2;
 }

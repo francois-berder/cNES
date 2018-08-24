@@ -28,6 +28,7 @@ size_t get_op_ABS_offset(uint8_t *ptr_code, uint8_t offset);
 size_t get_op_IND(uint8_t *ptr_code, CPU_6502 *NESCPU);
 size_t get_op_INDX(uint8_t *ptr_code, CPU_6502 *NESCPU);
 size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU);
+unsigned PAGE_CROSS(unsigned val1, unsigned val2);
 
 /***************************
  * STATUS                  *
