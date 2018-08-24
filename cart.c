@@ -80,7 +80,7 @@ int load_cart(Cartridge* cart, const char *filename)
 	cart->prg_rom.data = (uint8_t*) malloc(cart->prg_rom.size);
 	fread(cart->prg_rom.data, 1, cart->prg_rom.size, rom);
 
-	/* loading data intp chr_rom */
+	/* loading data into chr_rom */
 	cart->chr_rom.data = (uint8_t*) malloc(cart->chr_rom.size);
 	fread(cart->chr_rom.data, 1, cart->chr_rom.size, rom);
 
