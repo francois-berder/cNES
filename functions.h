@@ -7,6 +7,7 @@
 #define __6502_FUNCTIONS__
 
 #include "cpu.h"
+#include <string.h>
 
 /***************************
  * STORAGE                 *

@@ -28,6 +28,9 @@ size_t get_op_ZP_offset(uint8_t *ptr_code, uint8_t offset)
 {
 	/* Zero Page X or Y - XXX operand, X/Y */
 	operand = (uint8_t) (*(ptr_code+1) + offset); /* Keeps operand on Zero Page */
+	sprintf(append_int, "%.2lX", operand - offset);
+	strcpy(end, "$");
+	strcat(end, append_int);
 	//operand = (uint8_t) read_addr(NES, (NES->PC + 1 + offset)); //cpu overhaul pt2.
 	NES->PC += 2; /* Update PC */
 	return operand;
@@ -44,6 +47,10 @@ size_t get_op_ABS_offset(uint8_t *ptr_code, uint8_t offset)
 	operand = (uint16_t) (operand + offset);
 	NES->PC += 3; /* Update PC */
 	tmp = operand - offset; // Page boundry calc
+	/* Debugger */
+	sprintf(append_int, "%.4zX", operand - offset);
+	strcpy(end, "$");
+	strcat(end, append_int);
 	return operand;
 	//operand = fetch_16(NES, (uint16_t) ((NES->PC + 1) + offset)));
 	// causes strange behaviour
@@ -66,6 +73,11 @@ size_t get_op_IND(uint8_t *ptr_code, CPU_6502 *NESCPU)
 		operand = read_addr(NES, operand + 1); /* PC high byte */
 	}
 	operand = (uint16_t) (operand << 8) | tmp; /* get target address (little endian) */
+	/* Debugger */
+	sprintf(append_int, "%.zX", operand);
+	strcpy(end, "($");
+	strcat(end, append_int);
+	strcat(end, ")");
 	NES->PC += 3; /* Update PC */
 	return operand;
 }
@@ -79,6 +91,11 @@ size_t get_op_INDX(uint8_t *ptr_code, CPU_6502 *NESCPU)
 	tmp = read_addr(NES, (uint8_t) (*(ptr_code+1) + NESCPU->X)); /* sum address (LSB) */
 	operand = read_addr(NES, (uint8_t) (*(ptr_code+1) + NESCPU->X + 1)); /* Sum address + 1 (MSB) */
 	operand = (uint16_t) (operand << 8) | tmp; /* get target address (little endian) */
+	/* Debugger */
+	sprintf(append_int, "%.2X", *(ptr_code+1));
+	strcpy(end, "($");
+	strcat(end, append_int);
+	strcat(end, ", X)");
 	NES->PC += 2; /* Update PC */
 	return operand;
 }
@@ -93,6 +110,11 @@ size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU)
 	operand = read_addr(NES, (uint8_t) (*(ptr_code+1) + 1)); /* sum address + 1 (MSB) */
 	operand = (uint16_t) (operand << 8) | tmp; /* get little endian */
 	operand = (uint16_t) (NESCPU->Y + operand); /* get target address */
+	/* Debugger */
+	sprintf(append_int, "%.2X", *(ptr_code+1));
+	strcpy(end, "($");
+	strcat(end, append_int);
+	strcat(end, "), Y");
 	NES->PC += 2; /* Update PC */
 
 	tmp = operand - NESCPU->Y; // Page boundy calc
@@ -117,6 +139,8 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2)
 /* Return Status */
 void RET_NES_CPU(void)
 {
+	printf("%.13s \n", instruction);
+	/*
 	printf("A:%.2X ", NES->A);
 	printf("X:%.2X ", NES->X);
 	printf("Y:%.2X ", NES->Y);
@@ -124,6 +148,7 @@ void RET_NES_CPU(void)
 	printf("SP:%.2X ", NES->Stack);
 	printf("PC:%.4X ", NES->PC);
 	printf("CPU:%.4d\n", NES->Cycle);
+	*/
 }
 
 /***************************

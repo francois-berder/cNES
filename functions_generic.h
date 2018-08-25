@@ -16,6 +16,9 @@
  *             3. CPU6502 *NESCPU = contains NES
  *             ... CPU registers etc.
  */
+char instruction[14]; // Disassembler
+char end[7]; // Disassembler
+char append_int[6]; // Disassembler
 
 /***************************
  * FETCH OPCODE            *

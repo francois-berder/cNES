@@ -38,7 +38,8 @@ void Debug_6502(uint16_t PC)
 		break;
 	case 0x08:
 		/* PHP */
-		printf("PHP          ");
+		// 3 + 10 spaces 
+		strcpy(instruction, "PHP");
 		PUSH(NES->P | 0x30); /* Set Bits 4 & 5 to 1 for PHP */
 		++NES->PC;
 		NES->Cycle += 3;
@@ -82,12 +83,14 @@ void Debug_6502(uint16_t PC)
 	case 0x15:
 		/* ORA - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ORA(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0x16:
 		/* ASL - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ASL(ZPX, operand);
 		NES->Cycle += 6;
 		break;
@@ -100,6 +103,7 @@ void Debug_6502(uint16_t PC)
 	case 0x19:
 		/* ORA - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_ORA(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -107,6 +111,7 @@ void Debug_6502(uint16_t PC)
 	case 0x1D:
 		/* ORA - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ORA(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -114,6 +119,7 @@ void Debug_6502(uint16_t PC)
 	case 0x1E:
 		/* ASL - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ASL(ABSX, operand);
 		NES->Cycle += 7;
 		break;
@@ -150,7 +156,7 @@ void Debug_6502(uint16_t PC)
 		break;
 	case 0x28:
 		/* PLP */
-		printf("PLP          ");
+		strcpy(instruction, "PLP");
 		NES->P = PULL() & ~(0x10); /* B flag may exist on stack not on P */
 		NES->P |= 0x20; /* bit 5 always set */
 		++NES->PC;
@@ -201,12 +207,14 @@ void Debug_6502(uint16_t PC)
 	case 0x35:
 		/* AND - Zero Page X mode*/
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_AND(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0x36:
 		/* ROL - Zero Page X mode*/
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ROL(ZPX, operand);
 		NES->Cycle += 6;
 		break;
@@ -219,6 +227,7 @@ void Debug_6502(uint16_t PC)
 	case 0x39:
 		/* AND - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_AND(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -226,6 +235,7 @@ void Debug_6502(uint16_t PC)
 	case 0x3D:
 		/* AND - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_AND(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -233,6 +243,7 @@ void Debug_6502(uint16_t PC)
 	case 0x3E:
 		/* ROL - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ROL(ABSX, operand);
 		NES->Cycle += 7;
 		break;
@@ -261,7 +272,7 @@ void Debug_6502(uint16_t PC)
 		break;
 	case 0x48:
 		/* PHA */
-		printf("PHA          ");
+		strcpy(instruction, "PHA");
 		PUSH(NES->A);
 		++NES->PC;
 		NES->Cycle += 3;
@@ -311,12 +322,14 @@ void Debug_6502(uint16_t PC)
 	case 0x55:
 		/* EOR - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_EOR(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0x56:
 		/* LSR - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LSR(ZPX, operand);
 		NES->Cycle += 6;
 		break;
@@ -329,6 +342,7 @@ void Debug_6502(uint16_t PC)
 	case 0x59:
 		/* EOR - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_EOR(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -336,6 +350,7 @@ void Debug_6502(uint16_t PC)
 	case 0x5D:
 		/* EOR - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_EOR(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
@@ -343,6 +358,7 @@ void Debug_6502(uint16_t PC)
 	case 0x5E:
 		/* LSR - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LSR(ABSX, operand);
 		NES->Cycle += 7;
 		break;
@@ -376,7 +392,7 @@ void Debug_6502(uint16_t PC)
 		break;
 	case 0x68:
 		/* PLA */
-		printf("PLA          ");
+		strcpy(instruction, "PLA");
 		NES->A = PULL();
 		update_FLAG_Z(NES->A);
 		update_FLAG_N(NES->A);
@@ -434,6 +450,7 @@ void Debug_6502(uint16_t PC)
 	case 0x75:
 		/* ADC - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ADC(ZPX, operand);
 		//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
 		//set_or_clear_CARRY(tmp);
@@ -442,6 +459,7 @@ void Debug_6502(uint16_t PC)
 	case 0x76:
 		/* ROR - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ROR(ZPX, operand);
 		NES->Cycle += 6;
 		break;
@@ -454,6 +472,7 @@ void Debug_6502(uint16_t PC)
 	case 0x79:
 		/* ADC - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Earlier because tmp is overwritten
 		execute_ADC(ABSY, operand);
 		//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
@@ -463,6 +482,7 @@ void Debug_6502(uint16_t PC)
 	case 0x7D:
 		/* ADC - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Earlier because tmp is overwritten
 		execute_ADC(ABSX, operand);
 		NES->Cycle += 4;
@@ -472,6 +492,7 @@ void Debug_6502(uint16_t PC)
 	case 0x7E:
 		/* ROR - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_ROR(ABSX, operand);
 		NES->Cycle += 7;
 		break;
@@ -543,18 +564,21 @@ void Debug_6502(uint16_t PC)
 	case 0x94:
 		/* STY - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_STY(operand);
 		NES->Cycle += 4;
 		break;
 	case 0x95:
 		/* STA - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_STA(operand);
 		NES->Cycle += 4;
 		break;
 	case 0x96:
 		/* STX - Zero Page Y mode */
 		operand = get_op_ZP_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_STX(operand);
 		NES->Cycle += 4;
 		break;
@@ -567,6 +591,7 @@ void Debug_6502(uint16_t PC)
 	case 0x99:
 		/* STA - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_STA(operand);
 		NES->Cycle += 5;
 		break;
@@ -579,6 +604,7 @@ void Debug_6502(uint16_t PC)
 	case 0x9D:
 		/* STA - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_STA(operand);
 		NES->Cycle += 5;
 		break;
@@ -669,18 +695,21 @@ void Debug_6502(uint16_t PC)
 	case 0xB4:
 		/* LDY - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LDY(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0xB5:
 		/* LDA - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LDA(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0xB6:
 		/* LDX - Zero Page Y mode */
 		operand = get_op_ZP_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_LDX(ZPX, operand);
 		NES->Cycle += 4;
 		break;
@@ -693,6 +722,7 @@ void Debug_6502(uint16_t PC)
 	case 0xB9:
 		/* LDA - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_LDA(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -706,6 +736,7 @@ void Debug_6502(uint16_t PC)
 	case 0xBC:
 		/* LDY - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LDY(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -713,6 +744,7 @@ void Debug_6502(uint16_t PC)
 	case 0xBD:
 		/* LDA - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_LDA(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -720,6 +752,7 @@ void Debug_6502(uint16_t PC)
 	case 0xBE:
 		/* LDX - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_LDX(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -805,12 +838,14 @@ void Debug_6502(uint16_t PC)
 	case 0xD5:
 		/* CMP - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_CMP(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0xD6:
 		/* DEC - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_DEC(operand);
 		NES->Cycle += 6;
 		break;
@@ -823,6 +858,7 @@ void Debug_6502(uint16_t PC)
 	case 0xD9:
 		/* CMP - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_CMP(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -830,6 +866,7 @@ void Debug_6502(uint16_t PC)
 	case 0xDD:
 		/* CMP - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_CMP(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -837,6 +874,7 @@ void Debug_6502(uint16_t PC)
 	case 0xDE:
 		/* DEC - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_DEC(operand);
 		NES->Cycle += 7;
 		break;
@@ -921,12 +959,14 @@ void Debug_6502(uint16_t PC)
 	case 0xF5:
 		/* SBC - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_SBC(ZPX, operand);
 		NES->Cycle += 4;
 		break;
 	case 0xF6:
 		/* INC - Zero Page X mode */
 		operand = get_op_ZP_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_INC(operand);
 		NES->Cycle += 6;
 		break;
@@ -939,6 +979,7 @@ void Debug_6502(uint16_t PC)
 	case 0xF9:
 		/* SBC - Absolute Y mode */
 		operand = get_op_ABS_offset(opcode, NES->Y);
+		strcat(end, ", Y");
 		execute_SBC(ABSY, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -946,6 +987,7 @@ void Debug_6502(uint16_t PC)
 	case 0xFD:
 		/* SBC - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_SBC(ABSX, operand);
 		NES->Cycle += 4;
 		NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
@@ -953,6 +995,7 @@ void Debug_6502(uint16_t PC)
 	case 0xFE:
 		/* INC - Absolute X mode */
 		operand = get_op_ABS_offset(opcode, NES->X);
+		strcat(end, ", X");
 		execute_INC(operand);
 		NES->Cycle += 7;
 		break;
