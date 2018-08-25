@@ -95,7 +95,7 @@ size_t get_op_INDX(uint8_t *ptr_code, CPU_6502 *NESCPU)
 	sprintf(append_int, "%.2X", *(ptr_code+1));
 	strcpy(end, "($");
 	strcat(end, append_int);
-	strcat(end, ", X)");
+	strcat(end, ",X)");
 	NES->PC += 2; /* Update PC */
 	return operand;
 }
@@ -114,7 +114,7 @@ size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU)
 	sprintf(append_int, "%.2X", *(ptr_code+1));
 	strcpy(end, "($");
 	strcat(end, append_int);
-	strcat(end, "), Y");
+	strcat(end, "),Y");
 	NES->PC += 2; /* Update PC */
 
 	tmp = operand - NESCPU->Y; // Page boundy calc
@@ -139,16 +139,25 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2)
 /* Return Status */
 void RET_NES_CPU(void)
 {
-	printf("%.13s \n", instruction);
-	/*
-	printf("A:%.2X ", NES->A);
-	printf("X:%.2X ", NES->X);
-	printf("Y:%.2X ", NES->Y);
-	printf("P:%.2X ", NES->P);
-	printf("SP:%.2X ", NES->Stack);
-	printf("PC:%.4X ", NES->PC);
-	printf("CPU:%.4d\n", NES->Cycle);
-	*/
+	printf("%-20s ", instruction);
+	printf("A:%.2X ", NES->old_A);
+	printf("X:%.2X ", NES->old_X);
+	printf("Y:%.2X ", NES->old_Y);
+	printf("P:%.2X ", NES->old_P);
+	printf("SP:%.2X ", NES->old_Stack);
+	printf("PC:%.4X ", NES->old_PC);
+	printf("CPU:%.4d\n", NES->old_Cycle);
+}
+
+void transfer_cpu(void)
+{
+	NES->old_A = NES->A;
+	NES->old_X = NES->X;
+	NES->old_Y = NES->Y;
+	NES->old_P = NES->P;
+	NES->old_Stack = NES->Stack;
+	NES->old_PC = NES->PC;
+	NES->old_Cycle = NES->Cycle;
 }
 
 /***************************

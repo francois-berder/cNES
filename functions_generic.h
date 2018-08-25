@@ -37,6 +37,7 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2);
  * STATUS                  *
  * *************************/
 void RET_NES_CPU(void); /* Return Status */
+void transfer_cpu(void);
 
 
 /***************************

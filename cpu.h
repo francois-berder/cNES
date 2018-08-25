@@ -32,6 +32,15 @@ typedef struct {
 	uint16_t PC; /* Program counter (Instruction Pointer) */
 	/* Memory */
 	uint8_t RAM[MEMORY_SIZE]; /* 2 Kb internal RAM */
+
+	/* Previous Values - for Disassembler */
+	uint8_t old_A;
+	uint8_t old_X;
+	uint8_t old_Y;
+	uint8_t old_P;
+	unsigned int old_Cycle;
+	int old_Stack;
+	uint16_t old_PC;
 } CPU_6502;
 
 

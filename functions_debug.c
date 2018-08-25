@@ -114,7 +114,7 @@ void execute_STY(size_t operand)
  */
 void execute_TAX(void)
 {
-	strcpy(instruction, "TAX ");
+	strcpy(instruction, "TAX");
 	NES->X = NES->A;
 	update_FLAG_N(NES->X);
 	update_FLAG_Z(NES->X);
@@ -125,7 +125,7 @@ void execute_TAX(void)
  */
 void execute_TAY(void)
 {
-	strcpy(instruction, "TAY ");
+	strcpy(instruction, "TAY");
 	NES->Y = NES->A;
 	update_FLAG_N(NES->Y);
 	update_FLAG_Z(NES->Y);
@@ -136,7 +136,7 @@ void execute_TAY(void)
  */
 void execute_TSX(void)
 {
-	strcpy(instruction, "TSX ");
+	strcpy(instruction, "TSX");
 	NES->X = NES->Stack;
 	update_FLAG_N(NES->X);
 	update_FLAG_Z(NES->X);
@@ -147,7 +147,7 @@ void execute_TSX(void)
  */
 void execute_TXA(void)
 {
-	strcpy(instruction, "TXA ");
+	strcpy(instruction, "TXA");
 	NES->A = NES->X;
 	update_FLAG_N(NES->A);
 	update_FLAG_Z(NES->A);
@@ -158,7 +158,7 @@ void execute_TXA(void)
  */
 void execute_TXS(void)
 {
-	strcpy(instruction, "TXS ");
+	strcpy(instruction, "TXS");
 	NES->Stack = NES->X;
 }
 
@@ -167,7 +167,7 @@ void execute_TXS(void)
  */
 void execute_TYA(void)
 {
-	strcpy(instruction, "TYA ");
+	strcpy(instruction, "TYA");
 	NES->A = NES->Y;
 	update_FLAG_N(NES->A);
 	update_FLAG_Z(NES->A);
@@ -208,7 +208,7 @@ void execute_ADC(enum MODES address_mode, size_t operand)
 void execute_DEC(size_t operand)
 {
 	//printf("DEC $%.4zX    ", operand);
-	strcpy(instruction, "DEC ");
+	strcpy(instruction, "DEC");
 	strcat(instruction, end);
 	write_addr(NES, operand, read_addr(NES, operand) - 1);
 	update_FLAG_N(read_addr(NES, operand));
