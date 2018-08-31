@@ -33,6 +33,8 @@ typedef struct {
 	/* Memory */
 	uint8_t RAM[MEMORY_SIZE]; /* 2 Kb internal RAM */
 
+	unsigned NMI_PENDING; /* Needed to trigger NMI - takes values 0 & 1 */
+
 	/* Previous Values - for Disassembler */
 	uint8_t old_A;
 	uint8_t old_X;

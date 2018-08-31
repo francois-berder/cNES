@@ -2,8 +2,8 @@
  * Generic Functions 
  */
 
-#ifndef __6502_GEN_FUNCTIONS__
-#define __6502_GEN_FUNCTIONS__
+#ifndef __HELPER_FUNCTIONS__
+#define __HELPER_FUNCTIONS__
 
 #include "cpu.h"
 #include "globals.h"
@@ -68,4 +68,4 @@ void update_FLAG_V(int *bin_array1, int *bin_array2, int *result);
 void update_FLAG_C(uint8_t cOUT);
 void set_or_clear_CARRY(uint8_t value);
 
-#endif /* __6502_GEN_FUNCTIONS__ */
+#endif /* __HELPER_FUNCTIONS__ */

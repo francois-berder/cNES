@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "cpu.h"
+#include "opcode_functions.h"
 
 #define PPUCTRL_ADDR 0x2000 /* ADD Define addr consts???? */
 #define KiB (1024)
@@ -52,7 +53,10 @@ typedef struct {
 	bool RESET_2;
 
 	uint32_t scanline; /* Pre-render = 261, visible = 0 - 239, post-render 240 - 260 */
+	uint32_t nmi_start; /* Scanline in which NMI starts - set value depending on NTSC or PAL */
+	const uint32_t nmi_end; /* Scanline in which NMI end */
 	uint32_t cycle; /* PPU Cycles, each PPU mem access takes 2 cycles */
+	uint32_t old_cycle; /* */
 } PPU_Struct;
 
 /* Global defintions */
@@ -106,7 +110,7 @@ uint16_t ppu_base_nt_address(PPU_Struct *p);
 
 
 void ppu_tick(PPU_Struct *p);
-void ppu_step(PPU_Struct *p);
+void ppu_step(PPU_Struct *p, CPU_6502* NESCPU);
 
 
 #endif /* __NES_PPU__ */

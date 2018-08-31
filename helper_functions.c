@@ -2,7 +2,7 @@
  * Generic Functions 
  */
 
-#include "functions_generic.h"
+#include "helper_functions.h"
 
 
 
@@ -132,6 +132,7 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2)
 	return ((val1 & 0xFF00) == (val2 & 0xFF00)) ? 1 : 0;
 }
 
+
 /***************************
  * STATUS                  *
  * *************************/
@@ -139,14 +140,14 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2)
 /* Return Status */
 void RET_NES_CPU(void)
 {
+	printf("%-6.4X ", NES->old_PC);
 	printf("%-20s ", instruction);
 	printf("A:%.2X ", NES->old_A);
 	printf("X:%.2X ", NES->old_X);
 	printf("Y:%.2X ", NES->old_Y);
 	printf("P:%.2X ", NES->old_P);
 	printf("SP:%.2X ", NES->old_Stack);
-	printf("PC:%.4X ", NES->old_PC);
-	printf("CPU:%.4d\n", NES->old_Cycle);
+	printf("CPU:%.4d", NES->old_Cycle);
 }
 
 void transfer_cpu(void)

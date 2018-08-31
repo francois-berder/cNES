@@ -70,7 +70,11 @@ PPU_Struct *ppu_init()
 	ppu->RESET_1 = false;
 	ppu->RESET_2 = false;
 	ppu->cycle = 0;
-	ppu->scanline = 240;
+	ppu->cycle = 30; // Used to match Mesen traces
+	ppu->scanline = 0; // Mesen starts @ 0, previously mine = 240
+
+	/* NTSC */
+	ppu->nmi_start = 241;
 	return ppu;
 }
 
@@ -89,6 +93,7 @@ void ppu_reset(int start, PPU_Struct *p)
 		p->RESET_2 = true;
 	}
 }
+
 
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
 {
@@ -153,7 +158,6 @@ uint8_t read_2002(PPU_Struct *p)
 	p->PPU_STATUS &= ~(0x80);
 	p->toggle_w = false; // Clear latch used by PPUSCROLL & PPUADDR
 	return p->temp;
-	//p->PPU_STATUS &= ~(0x80);
 }
 
 /* Write Functions */
@@ -273,13 +277,26 @@ void ppu_tick(PPU_Struct *p)
 	}
 }
 
-void ppu_step(PPU_Struct *p)
+void ppu_step(PPU_Struct *p, CPU_6502* NESCPU)
 {
 //#ifdef __RESET__
 	ppu_reset(1, p);
 //#endif
 
 	ppu_tick(p); // Idle cycle thus can run tick to increment cycle from 0 to 1 initially
+
+	/* NMI Calc */
+	if (p->scanline == p->nmi_start) {
+		if ((p->PPU_CTRL & 0x80) == 0x80) { /* if PPU CTRL has execute NMI on VBlank */
+			p->PPU_STATUS |= 0x80; /* In VBlank */
+			if ((p->cycle - 3) == 7) { // 7 --> delay by One PPU Cycle
+				NESCPU->NMI_PENDING = 1;
+			}
+		}
+		return;
+	}  else if (p->scanline == 261) {
+		p->PPU_STATUS &= ~(0x80);
+	}
 
 	if (p->cycle < 256) {
 		/*
