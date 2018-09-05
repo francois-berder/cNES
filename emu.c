@@ -10,6 +10,7 @@
 //const char *filename = "nestest.nes";
 //const char *filename = "super_mario_bros.nes";
 const char *filename = "donkey_kong.nes";
+//const char *filename = "balloon.nes";
 //const char *filename = "nmi.nes";
 
 #define __LOG__
@@ -60,7 +61,7 @@ void ppu_cpu_ratio(void)
 		ppu_step(PPU, NES);
 		ppu_step(PPU, NES);
 	}
-	RET_NES_CPU();
+	//RET_NES_CPU();
 }
 
 int main(int argc, char **argv)
@@ -83,15 +84,15 @@ int main(int argc, char **argv)
 	//5005 - nestest, 104615 - SMB1, 42360 Donkey Kong @ 5 frames
 	// 32598 SMB1 not sure why tho
 	//NES->PC = 0xC000; //nes test
-	while (i < 42360) {
+	SDL_init();
+
+	while (i < 119123) { // 5 Frames DK
 		ppu_cpu_ratio();
-		//Debug_6502(NES->PC);
-		printf(" PPU_CYC: %-3d", PPU->old_cycle);
-		printf(" SL: %d\n", (PPU->scanline));
-		//debug_ppu();
+		//printf(" PPU_CYC: %-3d", PPU->old_cycle);
+		//printf(" SL: %d\n", (PPU->scanline));
 		++i;
 	}
-	
+	//OLD LOOOOP PRIOR TO SDL
 
 	// Testing read/write of PPU
 	/*
@@ -106,7 +107,28 @@ int main(int argc, char **argv)
 	write_PPU_Reg(0x2006, 0x00, PPU);
 	write_PPU_Reg(0x2007, 0x24, PPU);
 	*/
+
+	/* SDL LOOOOOOP */
+	/*
+	SDL_init();
+	int quit = 0;
+	SDL_Event e;
+	while (!quit) {
+		while (SDL_PollEvent(&e)) {
+			if (e.type == SDL_QUIT) {
+				quit = 1;
+			}
+		}
+		ppu_cpu_ratio();
+		printf(" PPU_CYC: %-3d", PPU->old_cycle);
+		printf(" SL: %d\n", (PPU->scanline));
+	}
+
+	*/
 	// Pattern table viewer
 	PPU_PT_DEBUG();
+	SDL_Delay(5000);
+	//SDL_DestroyWindow(window);
+	SDL_Quit();
 	return 0;
 }

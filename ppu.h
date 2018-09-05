@@ -5,19 +5,13 @@
 #include <stdio.h>
 #include "cpu.h"
 #include "opcode_functions.h"
+#include "gui.h"
 
 #define PPUCTRL_ADDR 0x2000 /* ADD Define addr consts???? */
 #define KiB (1024)
 
 
 /* Struct */
-typedef struct {
-	uint8_t R;
-	uint8_t G;
-	uint8_t B;
-} RGB;
-
-extern unsigned int pixel_color;
 
 typedef struct {
 	/* Registers  - maybe make these pointers to the CPU mem space */
@@ -45,8 +39,14 @@ typedef struct {
 	uint8_t pt_hi_latch;
 	uint16_t pt_lo_shift_reg; /* Stores a 16 pixels in the pipeline - 1st 8 pixels to be rendered are in lowest byte */
 	uint16_t pt_hi_shift_reg;
-	uint8_t at_byte_current; /* Current at byte (pixels 1- 8 in the pipeline) */
-	uint8_t at_byte_next; /* Next byte for at byte (pixels 9 - 16 in the pipeline) */
+	uint8_t nt_byte; /* NT byte that is rendered 16 PPU cycles later */
+	uint8_t at_latch; /* AT byte that is rendered 16 PPU cycles later */
+	uint8_t at_current; /* AT byte for pixels 1 - 8 in pipeline */
+	uint8_t at_next; /* AT byte for pixels 9 - 16 in pipeline */
+
+	uint16_t nt_addr_tmp; /* Address used to generate nt byte */
+	uint16_t nt_addr_next; /* Next tile address for pixels 9 -16 in pipeline */
+	uint16_t nt_addr_current; /* Current tile address for pixels 1 - 8 in pipeline */
 
 	//int palette[4]; /* Stores the 4 colour palette */
 	bool RESET_1;
@@ -88,6 +88,7 @@ void write_2007(uint8_t data, PPU_Struct *p); /* PPU_DATA */
 //uint16_t ppu_nametable_addr();
 uint8_t ppu_vram_addr_inc(PPU_Struct *p);
 uint16_t ppu_base_nt_address(PPU_Struct *p);
+uint16_t ppu_base_pt_address(PPU_Struct *p);
 //uint16_t ppu_sprite_pattern_table_addr();
 //uint16_t ppu_bg_pattern_table_addr();
 //uint8_t ppu_sprite_height();
@@ -107,6 +108,13 @@ uint16_t ppu_base_nt_address(PPU_Struct *p);
 //bool ppu_sprite_overflow();
 //bool ppu_sprite_0_hit();
 //bool ppu_vblank();
+
+void fetch_nt_byte(PPU_Struct *p);
+void fetch_at_byte(PPU_Struct *p);
+void fetch_pt_lo(PPU_Struct *p);
+void fetch_pt_hi(PPU_Struct *p);
+
+void render_pixel(PPU_Struct *p);
 
 
 void ppu_tick(PPU_Struct *p);

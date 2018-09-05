@@ -34,11 +34,10 @@ size_t get_op_INDY(uint8_t *ptr_code, CPU_6502 *NESCPU);
 unsigned PAGE_CROSS(unsigned val1, unsigned val2);
 
 /***************************
- * STATUS                  *
+ * OTHER                   *
  * *************************/
 void RET_NES_CPU(void); /* Return Status */
 void transfer_cpu(void);
-
 
 /***************************
  * ADD & SUB RELATED FUNCS *

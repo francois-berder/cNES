@@ -1,12 +1,9 @@
 #include "ppu.h"
 
-// Place in cpu.h??  -- should be raw address pointers (can change later)
-// #define PPU_CTRL read_addr(NES, 0x2000)
 // Later add _PPU_IO_BUS (PPUGenLatch in FCEUX)
 
-int pixelBuffer[] = {0};
 
-/* How screen pos is arranged - 0x00 = top left, 0xFF = bottom right */
+/* Reverse bits lookup table for an 8 bit number */
 const uint8_t reverse_bits[256] = {
 	0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0, 0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
 	0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8, 0x18, 0x98, 0x58, 0xd8, 0x38, 0xb8, 0x78, 0xf8,
@@ -26,7 +23,9 @@ const uint8_t reverse_bits[256] = {
 	0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff
 };
 
-static const unsigned int palette[64] = {
+/* RGB values of NES colour palette -format: 0xRRGGBB */
+/*
+static const uint32_t palette[64] = {
 	0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000, 0x881400,
 	0x503000, 0x007800, 0x006800, 0x005800, 0x004058, 0x000000, 0x000000, 0x000000,
 	0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC, 0xD800CC, 0xE40058, 0xF83800, 0xE45C10,
@@ -36,6 +35,10 @@ static const unsigned int palette[64] = {
 	0xFCFCFC, 0xA4E4FC, 0xB8B8F8, 0xD8B8F8, 0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
 	0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000, 0x000000
 };
+*/
+
+// Mesen Palette
+static const uint32_t palette[0x40] = { 0xFF666666, 0xFF002A88, 0xFF1412A7, 0xFF3B00A4, 0xFF5C007E, 0xFF6E0040, 0xFF6C0600, 0xFF561D00, 0xFF333500, 0xFF0B4800, 0xFF005200, 0xFF004F08, 0xFF00404D, 0xFF000000, 0xFF000000, 0xFF000000, 0xFFADADAD, 0xFF155FD9, 0xFF4240FF, 0xFF7527FE, 0xFFA01ACC, 0xFFB71E7B, 0xFFB53120, 0xFF994E00, 0xFF6B6D00, 0xFF388700, 0xFF0C9300, 0xFF008F32, 0xFF007C8D, 0xFF000000, 0xFF000000, 0xFF000000, 0xFFFFFEFF, 0xFF64B0FF, 0xFF9290FF, 0xFFC676FF, 0xFFF36AFF, 0xFFFE6ECC, 0xFFFE8170, 0xFFEA9E22, 0xFFBCBE00, 0xFF88D800, 0xFF5CE430, 0xFF45E082, 0xFF48CDDE, 0xFF4F4F4F, 0xFF000000, 0xFF000000, 0xFFFFFEFF, 0xFFC0DFFF, 0xFFD3D2FF, 0xFFE8C8FF, 0xFFFBC2FF, 0xFFFEC4EA, 0xFFFECCC5, 0xFFF7D8A5, 0xFFE4E594, 0xFFCFEF96, 0xFFBDF4AB, 0xFFB3F3CC, 0xFFB5EBF2, 0xFFB8B8B8, 0xFF000000, 0xFF000000 };
 
 /*
 static const RGB ppu_color_pallete[64][3] = {
@@ -72,6 +75,10 @@ PPU_Struct *ppu_init()
 	ppu->cycle = 0;
 	ppu->cycle = 30; // Used to match Mesen traces
 	ppu->scanline = 0; // Mesen starts @ 0, previously mine = 240
+
+	/* Set PPU Latches and shift reg to 0 */
+	ppu->pt_lo_shift_reg = 0;
+	ppu->pt_hi_shift_reg = 0;
 
 	/* NTSC */
 	ppu->nmi_start = 241;
@@ -260,6 +267,132 @@ uint16_t ppu_base_nt_address(PPU_Struct *p)
 	}
 }
 
+
+uint16_t ppu_base_pt_address(PPU_Struct *p)
+{
+	switch((p->PPU_CTRL >> 4) & 0x01) {
+	case 0:
+		return 0x0000;
+	case 1:
+		return 0x1000;
+	}
+}
+
+/* 
+ * Helper Functions
+ */
+
+void fetch_nt_byte(PPU_Struct *p)
+{
+	uint16_t nt_offset; // Calculates which pixel we are rendering and +1 to every 8 pixels
+	if (p->cycle >= 321) {
+		nt_offset = ((p->cycle + 16 - 314) /8); // Calculates which pixel we are rendering and +1 to every 8 pixels
+	} else {
+		nt_offset = (p->scanline /8)*32 + ((p->cycle + 16) /8); // Calculates which pixel we are rendering and +1 to every 8 pixels
+	}
+	p->nt_byte = p->VRAM[ppu_base_nt_address(p) + nt_offset];
+	p->nt_addr_tmp = ppu_base_nt_address(p) + nt_offset;
+	//p->nt_addr_tmp = 0x2000 | (p->vram_addr & 0x0FFF);
+}
+
+/* Determines colour palette */
+void fetch_at_byte(PPU_Struct *p)
+{
+	uint16_t at_addr = 0x23C0;
+	uint16_t at_offset; // + 8 for every 32 scanlines and + 1 for every 32 horiz pixel (cycle)
+	if (p->cycle >= 321) {
+		at_offset = (p->cycle - 314)/32;
+	} else {
+		at_offset = (p->cycle/32) + ((p->scanline/32)*8); // + 8 for every 32 scanlines and + 1 for every 32 horiz pixel (cycle)
+	}
+	p->at_latch = p->VRAM[at_addr + at_offset];
+	//printf("   AT ADDR %X  ", at_addr + at_offset);
+	//p->at_latch = p->VRAM[0x23C0 | (p->vram_addr & 0x0C00) | ((p->vram_addr >> 4) & 0x38) | ((p->vram_addr >> 2) & 0x07)];
+}
+
+/* Lo & Hi determine which index of the colour palette we use (0 to 3) */
+void fetch_pt_lo(PPU_Struct *p)
+{
+	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 7);
+	uint8_t latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
+	p->pt_lo_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
+	//printf("PT ADDR %X", ppu_base_pt_address(p) + pt_offset);
+}
+
+
+void fetch_pt_hi(PPU_Struct *p)
+{
+	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 8) + 8;
+	//p->pt_hi_latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
+	uint8_t latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
+	p->pt_hi_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
+}
+
+/*
+void shift_registers(PPU_Struct *p)
+{
+	p->pt_hi_shift_reg >>= 1;
+	p->pt_lo_shift_reg >>= 1;
+}
+*/
+
+void render_pixel(PPU_Struct *p)
+{
+
+	unsigned palette_addr;
+	/* - Defines the Colour palette */
+	printf("    NT ADDRESS: %.4X  ", p->nt_addr_current);
+	printf("    AT ADDR %X  ", 0x23C0 + ((p->cycle >= 321) ? (p->cycle/32) : ((p->cycle/32) + ((p->scanline/32)*8))));
+	if (p->nt_addr_current & 0x01) {
+		// Right
+		if (p->nt_addr_current & 0x20) {
+			// Bottom 
+			palette_addr = p->at_current >> 6;
+		} else {
+			// Top
+			palette_addr = p->at_current >> 2;
+		}
+	} else { // Left quad
+		if (p->nt_addr_current & 0x20) { // Bottom
+			palette_addr = p->at_current >> 4;
+		} else {
+			// Top
+			palette_addr = p->at_current & 0x0003;
+		}
+	}
+	palette_addr &= 0x03;
+	palette_addr <<= 2;
+
+	palette_addr += 0x3F00; // Palette mem starts here
+	// Palette address is stuck at 3F00
+	// SEE CYC:114 on scanline 249, pal address should equal 3F04 not 3f00
+	// LINE: 161108
+	// AT BYTE (CURRENT IS 0 at the wrong times from NAMETABLE 2220 onwards AtByte = 55 or AA)
+	printf("PAL_ADDR: %X", palette_addr);
+
+	/* 0 - 4 offset for Palette memory - defines the colour */
+	// @ CYC 25 palette offset should equal 1 but instead equals 3
+	// Concat formula is correct thus error must be in loading the shift registers
+	unsigned palette_offset = ((p->pt_hi_shift_reg & 0x01) << 1) | (p->pt_lo_shift_reg & 0x01);
+	printf("   PAL: %X", palette_offset + palette_addr);
+	printf("   AT BYTE %X", p->at_latch);
+	printf("   HIGH: %d, LOW: %d", ((p->pt_hi_shift_reg & 0x01) << 1), (p->pt_lo_shift_reg & 0x01));
+
+	unsigned RGB = p->VRAM[palette_addr + palette_offset]; // Get values
+
+	/* Reverse Bits */
+	//printf("A: %d\n", (p->cycle + (256 * p->scanline) - 1)); // Place in palette array, alpha set to 0xFF
+	pixels[(p->cycle + (256 * p->scanline) - 1)] = 0xFF000000 | palette[RGB]; // Place in palette array, alpha set to 0xFF
+	printf("   PALETTE = %X", palette[RGB]);
+	printf("   NT BYTE %X", p->nt_byte);
+	printf("   CYC = %d", p->cycle);
+	printf("   SL = %d\n", p->scanline);
+
+	/* Shift each cycle */
+	p->pt_hi_shift_reg >>= 1;
+	p->pt_lo_shift_reg >>= 1;
+}
+
 /*************************
  * RENDERING             *
  *************************/
@@ -294,23 +427,66 @@ void ppu_step(PPU_Struct *p, CPU_6502* NESCPU)
 			}
 		}
 		return;
-	}  else if (p->scanline == 261) {
+	}  else if (p->scanline == 261) { /* Pre-render scanline */
 		p->PPU_STATUS &= ~(0x80);
 	}
 
-	if (p->cycle < 256) {
-		/*
-		switch ((p->cycle - 1) & 0x07) {
-		case 0:
-			// Read nt_byte
-		case 2:
-			// read at_byte
-		case 4:
-			// read pt_lo into pt_latch
-		case 6:
-			// read pt_hi into pt_latch
-			// update shift registers
+	/* Process scanlines */
+	if (p->scanline <= 239) { /* Visible scanlines */
+		if (p->cycle <= 256 && (p->cycle != 0)) { // 0 is an idle cycle
+			// write to pixel buffer each cycle
+			render_pixel(p); // Render pixel every cycle
+			switch ((p->cycle - 1) & 0x07) {
+			case 0:
+				fetch_nt_byte(p);
+				break;
+			case 2:
+				fetch_at_byte(p);
+				break;
+			case 4:
+				fetch_pt_lo(p);
+				break;
+			case 6:
+				fetch_pt_hi(p);
+				break;
+			case 7: /* 8th Cycle */
+				// 8 Shifts should have occured by now, load new data
+				p->at_current = p->at_next;
+				p->at_next = p->at_latch;
+				/* Load latched values into upper byte of shift regs */
+				p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
+				p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
+				/* Used for palette calculations */
+				p->nt_addr_current = p->nt_addr_next;
+				p->nt_addr_next = p->nt_addr_tmp;
+				break;
+			}
+		} else if (p->cycle >= 321 && p->cycle <= 336) { // 1st 16 pixels of next scanline
+			switch ((p->cycle - 1) & 0x07) {
+			case 0:
+				fetch_nt_byte(p);
+				break;
+			case 2:
+				fetch_at_byte(p);
+				break;
+			case 4:
+				fetch_pt_lo(p);
+				break;
+			case 6:
+				fetch_pt_hi(p);
+				/* Load latched values into upper byte of shift regs */
+				p->pt_hi_shift_reg >>= 8; // Think i need this to set up the shift reg properly
+				p->pt_lo_shift_reg >>= 8; // It fills the first 16 pixels properly
+				p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
+				p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
+				p->at_current = p->at_next; // Current is 1st loaded w/ garbage
+				p->at_next = p->at_latch;
+				p->nt_addr_current = p->nt_addr_next;
+				p->nt_addr_next = p->nt_addr_tmp;
+				break;
+			}
 		}
-		*/
+	} else if (p->scanline == 240) {
+		draw_pixels(pixels); // Render frame
 	}
 }

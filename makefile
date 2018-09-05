@@ -1,9 +1,12 @@
-CC = cc
+CC = clang
 CFLAGS = -Wall -std=c99
 
 all: emu
 
-ppu.o: ppu.c ppu.h cpu.h
+gui.o: gui.c gui.h
+	$(CC) $(CFLAGS) -c gui.c $(shell pkg-config --cflags --libs sdl2)
+
+ppu.o: ppu.c ppu.h cpu.h gui.h
 	$(CC) $(CFLAGS) -c ppu.c
 
 cpu.o: cpu.c cpu.h ppu.h
@@ -27,8 +30,8 @@ opcode_table.o: opcode_table.c opcode_table.h helper_functions.h opcode_function
 emu.o: emu.c cpu.h opcode_table.h
 	$(CC) $(CFLAGS) -c emu.c
 
-emu: emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o
-	$(CC) -o emu emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o
+emu: emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o gui.o
+	$(CC) $(shell pkg-config --cflags --libs sdl2) -o emu emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o gui.o
 
 clean:
 	rm *.o

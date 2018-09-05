@@ -132,9 +132,8 @@ unsigned PAGE_CROSS(unsigned val1, unsigned val2)
 	return ((val1 & 0xFF00) == (val2 & 0xFF00)) ? 1 : 0;
 }
 
-
 /***************************
- * STATUS                  *
+ * OTHER                   *
  * *************************/
 
 /* Return Status */

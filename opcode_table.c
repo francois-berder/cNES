@@ -82,7 +82,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_ORA(INDY, operand);
 			NES->Cycle += 5; // Branch not taken, +1 if taken (in execute function)
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might be wrong
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x15:
 			/* ORA - Zero Page X mode */
@@ -110,7 +110,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_ORA(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x1D:
 			/* ORA - Absolute X mode */
@@ -118,7 +118,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_ORA(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x1E:
 			/* ASL - Absolute X mode */
@@ -156,7 +156,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_ZP_offset(opcode, 0);
 			execute_ROL(ZP, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x28:
 			/* PLP */
@@ -206,7 +206,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_AND(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might not work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x35:
 			/* AND - Zero Page X mode*/
@@ -234,7 +234,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_AND(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x3D:
 			/* AND - Absolute X mode */
@@ -242,7 +242,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_AND(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x3E:
 			/* ROL - Absolute X mode */
@@ -321,7 +321,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_EOR(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might not work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x55:
 			/* EOR - Zero Page X mode */
@@ -349,7 +349,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_EOR(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x5D:
 			/* EOR - Absolute X mode */
@@ -357,7 +357,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_EOR(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should be ok
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0x5E:
 			/* LSR - Absolute X mode */
@@ -375,17 +375,12 @@ void CPU_6502_STEP(uint16_t PC)
 			/* ADC - Indirect X mode */
 			operand = get_op_INDX(opcode, NES);
 			execute_ADC(INDX, operand);
-			// Should be ok to remove it's in execute function
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 6;
 			break;
 		case 0x65:
 			/* ADC - Zero Page mode */
 			operand = get_op_ZP_offset(opcode, 0);
 			execute_ADC(ZP, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 3;
 			break;
 		case 0x66:
@@ -407,8 +402,6 @@ void CPU_6502_STEP(uint16_t PC)
 			/* ADC - Immediate mode */
 			operand = get_op_IMM(opcode);
 			execute_ADC(IMM, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 2;
 			break;
 		case 0x6A:
@@ -427,8 +420,6 @@ void CPU_6502_STEP(uint16_t PC)
 			/* ADC - Absolute mode */
 			operand = get_op_ABS_offset(opcode, 0);
 			execute_ADC(ABS, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 4;
 			break;
 		case 0x6E:
@@ -447,8 +438,6 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			NES->Cycle += PAGE_CROSS(operand, tmp); // Earlier because tmp is overwritten
 			execute_ADC(INDY, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 5;
 			break;
 		case 0x75:
@@ -456,8 +445,6 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_ZP_offset(opcode, NES->X);
 			strcat(end, ",X");
 			execute_ADC(ZPX, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 4;
 			break;
 		case 0x76:
@@ -479,8 +466,6 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			NES->Cycle += PAGE_CROSS(operand, tmp); // Earlier because tmp is overwritten
 			execute_ADC(ABSY, operand);
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			NES->Cycle += 4;
 			break;
 		case 0x7D:
@@ -490,8 +475,6 @@ void CPU_6502_STEP(uint16_t PC)
 			NES->Cycle += PAGE_CROSS(operand, tmp); // Earlier because tmp is overwritten
 			execute_ADC(ABSX, operand);
 			NES->Cycle += 4;
-			//update_FLAG_V(bin_operand1, bin_operand2, bin_result);
-			//set_or_clear_CARRY(tmp);
 			break;
 		case 0x7E:
 			/* ROR - Absolute X mode */
@@ -694,7 +677,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_LDA(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might not work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xB4:
 			/* LDY - Zero Page X mode */
@@ -729,7 +712,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_LDA(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xBA:
 			/* TSX */
@@ -743,7 +726,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_LDY(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xBD:
 			/* LDA - Absolute X mode */
@@ -751,7 +734,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_LDA(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xBE:
 			/* LDX - Absolute Y mode */
@@ -759,7 +742,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_LDX(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xC0:
 			/* CPY - Immediate mode */
@@ -837,7 +820,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_CMP(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might not work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xD5:
 			/* CMP - Zero Page X mode */
@@ -865,7 +848,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_CMP(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xDD:
 			/* CMP - Absolute X mode */
@@ -873,7 +856,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_CMP(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xDE:
 			/* DEC - Absolute X mode */
@@ -951,14 +934,14 @@ void CPU_6502_STEP(uint16_t PC)
 		case 0xF0:
 			/* BEQ */
 			execute_BEQ(opcode);
-			NES->Cycle += 2; // Branch not taken ...
+			NES->Cycle += 2; // Branch not taken, +1 if taken (in execute_BEQ)
 			break;
 		case 0xF1:
 			/* SBC - Indirect Y mode */
 			operand = get_op_INDY(opcode, NES);
 			execute_SBC(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Might not work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xF5:
 			/* SBC - Zero Page X mode */
@@ -986,7 +969,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ", Y");
 			execute_SBC(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xFD:
 			/* SBC - Absolute X mode */
@@ -994,7 +977,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ", X");
 			execute_SBC(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // Should work
+			NES->Cycle += PAGE_CROSS(operand, tmp);
 			break;
 		case 0xFE:
 			/* INC - Absolute X mode */
