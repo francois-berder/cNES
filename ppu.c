@@ -322,7 +322,7 @@ void fetch_pt_lo(PPU_Struct *p)
 
 void fetch_pt_hi(PPU_Struct *p)
 {
-	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 8) + 8;
+	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 7) + 8;
 	//p->pt_hi_latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
 	uint8_t latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
 	p->pt_hi_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
