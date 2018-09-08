@@ -157,6 +157,43 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 	}
 }
 
+void write_vram(uint8_t data, PPU_Struct *p)
+{
+	if (p->mirroring == 0) {
+		// Horiz mirroring
+		if (p->vram_addr >= 0x2000 && p->vram_addr < 0x2400) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr + 0x0400] = data;
+		} else if (p->vram_addr >= 0x2400 && p->vram_addr < 0x2800) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr - 0x0400] = data;
+		} else if (p->vram_addr >= 0x2800 && p->vram_addr < 0x2C00) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr + 0x0400] = data;
+		} else if (p->vram_addr >= 0x2C00 && p->cycle < 0x3000) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr - 0x0400] = data;
+		}
+	} else if (p->mirroring == 1) {
+		// Vertical mirroring
+		if (p->vram_addr >= 0x2000 && p->vram_addr < 0x2800) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr + 0x0800] = data;
+		} else if (p->vram_addr >= 0x2800 && p->vram_addr < 0x2C00) {
+			p->VRAM[p->vram_addr] = data;
+			p->VRAM[p->vram_addr - 0x0800] = data;
+		}
+	} else if (p->mirroring == 4) {
+		// 4 Screen
+		p->VRAM[p->vram_addr] = data; // Do nothing
+	}
+
+	/* Write to palettes */
+	if (p->vram_addr >= 0x3F00) {
+		p->VRAM[p->vram_addr] = data;
+	}
+}
+
 /* Read Functions */
 
 uint8_t read_2002(PPU_Struct *p)
@@ -222,7 +259,8 @@ void write_2006(uint8_t data, PPU_Struct *p)
 
 void write_2007(uint8_t data, PPU_Struct *p)
 {
-	p->VRAM[p->vram_addr] = data; // Think that is correct
+	//p->VRAM[p->vram_addr] = data; // Think that is correct
+	write_vram(data, p);
 	p->vram_addr += ppu_vram_addr_inc(p);
 }
 
@@ -487,6 +525,6 @@ void ppu_step(PPU_Struct *p, CPU_6502* NESCPU)
 			}
 		}
 	} else if (p->scanline == 240) {
-		draw_pixels(pixels); // Render frame
+		draw_pixels(pixels, nes_screen); // Render frame
 	}
 }

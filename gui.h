@@ -7,13 +7,18 @@
 
 const unsigned SCREEN_WIDTH;
 const unsigned SCREEN_HEIGHT;
-
-//extern uint8_t pixels[SCREEN_WIDTH][SCREEN_HEIGHT][3]; // pixels[256][240][3], [3] --> 0 = red, 1 = blue
-//extern uint8_t pixels[256][240][3]; // pixels[256][240][3], [3] --> 0 = red, 1 = blue
-//extern uint32_t *pixels; // pixels[256][240][3], [3] --> 0 = red, 1 = blue
 uint32_t pixels[256 * 240]; // pixels[256][240][3], [3] --> 0 = red, 1 = blue
 
-int SDL_init(void);
-void draw_pixels(uint32_t *pixels); // Draws frame to screen
+typedef struct {
+	SDL_Window* window;
+	//static SDL_Surface* surface;
+	SDL_Renderer* renderer;
+	SDL_Texture* framebuffer;
+} SCREEN;
+
+SCREEN *nes_screen;
+SCREEN *screen_init(void);
+//int SDL_init(SDL_Window **window, SDL_Renderer **renderer, SDL_Texture **framebuffer);
+void draw_pixels(uint32_t *pixels, SCREEN *nes); // Draws frame to screen
 
 #endif /* __NES_GUI__ */

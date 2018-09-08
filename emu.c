@@ -37,7 +37,7 @@ void PPU_PT_DEBUG(void) {
 	printf("      00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
 	unsigned int addr = 0;
 	unsigned int mem = 0;
-	while (addr < 600) {
+	while (addr < 800) {
 		printf("%.4X: ", addr << 4);
 		for (int x = 0; x < 16; x++) {
 			printf("%.2X ", PPU->VRAM[mem]);
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	PPU = ppu_init();
 
 	Cartridge* cart = malloc(sizeof(Cartridge));
-	load_cart(cart, filename);
+	load_cart(cart, filename, PPU);
 	free(cart);
 	NES_PC(NES); /* Set PC to reset vector */
 	// Can combine above code into a NES init function
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	//5005 - nestest, 104615 - SMB1, 42360 Donkey Kong @ 5 frames
 	// 32598 SMB1 not sure why tho
 	//NES->PC = 0xC000; //nes test
-	SDL_init();
+	nes_screen = screen_init();
 
 	while (i < 119123) { // 5 Frames DK
 		ppu_cpu_ratio();

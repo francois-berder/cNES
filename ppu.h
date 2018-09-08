@@ -52,6 +52,8 @@ typedef struct {
 	bool RESET_1;
 	bool RESET_2;
 
+	unsigned mirroring; // 0 = Horz, 1 = vert, 4 = 4 screen
+
 	uint32_t scanline; /* Pre-render = 261, visible = 0 - 239, post-render 240 - 260 */
 	uint32_t nmi_start; /* Scanline in which NMI starts - set value depending on NTSC or PAL */
 	const uint32_t nmi_end; /* Scanline in which NMI end */
@@ -72,6 +74,8 @@ void ppu_reset(int start, PPU_Struct *p); /* Emulates reset/warm-up of PPU */
 //uint8_t read_PPU();
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p); /* For addresses exposed to CPU */
 void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p); /* For addresses exposed to CPU */
+
+void write_vram(uint8_t data, PPU_Struct *p);
 
 uint8_t read_2002(PPU_Struct *p);
 //uint8_t read_2004(uint16_t addr, PPU_Struct *p);

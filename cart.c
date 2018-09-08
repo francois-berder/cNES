@@ -4,7 +4,7 @@
 
 
 /* iNES format */
-int load_cart(Cartridge* cart, const char *filename)
+int load_cart(Cartridge* cart, const char *filename, PPU_Struct *p)
 {
 	uint8_t header[16];
 	int trainer;
@@ -51,10 +51,14 @@ int load_cart(Cartridge* cart, const char *filename)
 	mapper = (header[7] & 0xF0) | ((header[6] & 0xF0) >> 4);
 
 	/* Flags 6 */
-	if (header[6] & 0x01) {
-		cart->mirror_mode = VERT_MIRROR;
+	if (!(header[6] & 0x08)) {
+		if (header[6] & 0x01) {
+			p->mirroring = 1;
+		} else {
+			p->mirroring = 0;
+		}
 	} else {
-		cart->mirror_mode = HORZ_MIRROR;
+		p->mirroring = 4;
 	}
 
 	if ((header[6] & 0x04) == 0x04) {
