@@ -69,6 +69,7 @@ PPU_Struct *ppu_init()
 	ppu->PPU_MASK = 0x00;
 	ppu->OAM_ADDR = 0x00;;
 	ppu->PPU_STATUS = 0x00; // Had it on A0 before
+	ppu->buffer_2007 = 0;
 
 	ppu->RESET_1 = false;
 	ppu->RESET_2 = false;
@@ -115,7 +116,7 @@ uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
 		break;
 	case (0x2007):
 		/* PPU DATA */
-		return p->PPU_DATA;
+		read_2007(p);
 		break;
 	}
 }
@@ -159,38 +160,43 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 
 void write_vram(uint8_t data, PPU_Struct *p)
 {
+	uint16_t addr = p->vram_addr & 0x3FFF;
 	if (p->mirroring == 0) {
 		// Horiz mirroring
-		if (p->vram_addr >= 0x2000 && p->vram_addr < 0x2400) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr + 0x0400] = data;
-		} else if (p->vram_addr >= 0x2400 && p->vram_addr < 0x2800) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr - 0x0400] = data;
-		} else if (p->vram_addr >= 0x2800 && p->vram_addr < 0x2C00) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr + 0x0400] = data;
-		} else if (p->vram_addr >= 0x2C00 && p->cycle < 0x3000) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr - 0x0400] = data;
+		if (addr >= 0x2000 && addr < 0x2800) {
+			if (addr < 0x2400) {
+				p->VRAM[addr] = data;
+				p->VRAM[addr + 0x0400] = data;
+			} else {
+				p->VRAM[addr] = data;
+				p->VRAM[addr - 0x0400] = data;
+			}
+		} else if (addr >= 2800 && addr < 0x3000) {
+			if (addr < 0x2C00) {
+				p->VRAM[addr] = data;
+				p->VRAM[addr + 0x0400] = data;
+			} else {
+				p->VRAM[addr] = data;
+				p->VRAM[addr - 0x0400] = data;
+			}
 		}
 	} else if (p->mirroring == 1) {
 		// Vertical mirroring
-		if (p->vram_addr >= 0x2000 && p->vram_addr < 0x2800) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr + 0x0800] = data;
-		} else if (p->vram_addr >= 0x2800 && p->vram_addr < 0x2C00) {
-			p->VRAM[p->vram_addr] = data;
-			p->VRAM[p->vram_addr - 0x0800] = data;
+		if (addr >= 0x2000 && addr < 0x2800) {
+			p->VRAM[addr] = data;
+			p->VRAM[addr + 0x0800] = data;
+		} else if (addr >= 0x2800 && addr < 0x2C00) {
+			p->VRAM[addr] = data;
+			p->VRAM[addr - 0x0800] = data;
 		}
 	} else if (p->mirroring == 4) {
 		// 4 Screen
-		p->VRAM[p->vram_addr] = data; // Do nothing
+		p->VRAM[addr] = data; // Do nothing
 	}
 
 	/* Write to palettes */
-	if (p->vram_addr >= 0x3F00) {
-		p->VRAM[p->vram_addr] = data;
+	if (addr >= 0x3F00) {
+		p->VRAM[addr] = data;
 	}
 }
 
@@ -202,6 +208,22 @@ uint8_t read_2002(PPU_Struct *p)
 	p->PPU_STATUS &= ~(0x80);
 	p->toggle_w = false; // Clear latch used by PPUSCROLL & PPUADDR
 	return p->temp;
+}
+
+uint8_t read_2007(PPU_Struct *p)
+{
+	uint16_t addr = p->vram_addr & 0x3FFF;
+	uint8_t ret = 0; // return value
+
+	ret = p->buffer_2007;
+	p->buffer_2007 = p->VRAM[addr];
+
+	if (addr >= 0x3F00) {
+		ret = p->VRAM[addr];
+	}
+
+	p->vram_addr += ppu_vram_addr_inc(p);
+	return ret;
 }
 
 /* Write Functions */
@@ -234,7 +256,7 @@ void write_2005(uint8_t data, PPU_Struct *p)
 	} else {
 		// Second Write
 		p->vram_tmp_addr &= ~0x73E0; /* Clear bits that are to be set */
-		p->vram_tmp_addr |= ((data & 248) << 5) | ((data & 7) << 12);
+		p->vram_tmp_addr |= ((data & 0xF8) << 2) | ((data & 0x07) << 12);
 		p->PPU_SCROLL = p->vram_tmp_addr;
 	}
 	p->toggle_w = !p->toggle_w;
@@ -259,7 +281,6 @@ void write_2006(uint8_t data, PPU_Struct *p)
 
 void write_2007(uint8_t data, PPU_Struct *p)
 {
-	//p->VRAM[p->vram_addr] = data; // Think that is correct
 	write_vram(data, p);
 	p->vram_addr += ppu_vram_addr_inc(p);
 }
@@ -316,63 +337,96 @@ uint16_t ppu_base_pt_address(PPU_Struct *p)
 	}
 }
 
+/**
+ * PPU_MASK
+ */
+
+bool ppu_show_bg(PPU_Struct *p)
+{
+	if ((p->PPU_MASK & 0x08) == 0x08) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+bool ppu_show_sprite(PPU_Struct *p)
+{
+	if ((p->PPU_MASK & 0x10) == 0x10) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 /* 
  * Helper Functions
  */
 
+// Taken from wiki.nesdev
+void inc_vert_scroll(PPU_Struct *p)
+{
+	uint16_t addr = p->vram_addr;
+	if ((addr & 0x7000) != 0x7000) { // If fine Y < 7
+		addr += 0x1000; // Increment fineY
+	} else {
+		addr &= ~0x7000; // fine Y = 0
+		int y = (addr & 0x03E0) >> 5; // y = coarse Y
+		printf("1\n");
+		if (y == 29) {
+			y = 0; // coarse Y = 0
+			addr ^= 0x0800; // Switch vertical nametable
+		} else if (y == 31) {
+			y = 0; // coarse Y = 0, nametable not switched
+		} else {
+			y++;
+		}
+		addr = (addr & ~0x03E0) | (y << 5); // Put y back into vram_addr
+	}
+	p->vram_addr = addr;
+}
+
+void inc_horz_scroll(PPU_Struct *p)
+{
+	if ((p->vram_addr & 0x001F) == 31) {
+		p->vram_addr &= ~(0x001F);
+		p->vram_addr ^= 0x0400;
+	} else {
+		p->vram_addr++;
+	}
+}
+
 void fetch_nt_byte(PPU_Struct *p)
 {
-	uint16_t nt_offset; // Calculates which pixel we are rendering and +1 to every 8 pixels
-	if (p->cycle >= 321) {
-		nt_offset = ((p->cycle + 16 - 314) /8); // Calculates which pixel we are rendering and +1 to every 8 pixels
-	} else {
-		nt_offset = (p->scanline /8)*32 + ((p->cycle + 16) /8); // Calculates which pixel we are rendering and +1 to every 8 pixels
-	}
-	p->nt_byte = p->VRAM[ppu_base_nt_address(p) + nt_offset];
-	p->nt_addr_tmp = ppu_base_nt_address(p) + nt_offset;
-	//p->nt_addr_tmp = 0x2000 | (p->vram_addr & 0x0FFF);
+	p->nt_addr_tmp = 0x2000 | (p->vram_addr & 0x0FFF);
+	p->nt_byte = p->VRAM[p->nt_addr_tmp];
 }
 
 /* Determines colour palette */
 void fetch_at_byte(PPU_Struct *p)
 {
-	uint16_t at_addr = 0x23C0;
-	uint16_t at_offset; // + 8 for every 32 scanlines and + 1 for every 32 horiz pixel (cycle)
-	if (p->cycle >= 321) {
-		at_offset = (p->cycle - 314)/32;
-	} else {
-		at_offset = (p->cycle/32) + ((p->scanline/32)*8); // + 8 for every 32 scanlines and + 1 for every 32 horiz pixel (cycle)
-	}
-	p->at_latch = p->VRAM[at_addr + at_offset];
+	p->at_latch = p->VRAM[0x23C0 | (p->vram_addr & 0x0C00) | ((p->vram_addr >> 4) & 0x38) | ((p->vram_addr >> 2) & 0x07)];
 	//printf("   AT ADDR %X  ", at_addr + at_offset);
-	//p->at_latch = p->VRAM[0x23C0 | (p->vram_addr & 0x0C00) | ((p->vram_addr >> 4) & 0x38) | ((p->vram_addr >> 2) & 0x07)];
 }
 
 /* Lo & Hi determine which index of the colour palette we use (0 to 3) */
 void fetch_pt_lo(PPU_Struct *p)
 {
-	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 7);
-	uint8_t latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
+	uint16_t pt_offset = (p->nt_byte << 4) + ((p->vram_addr  & 0x7000) >> 12);
+	uint8_t latch = p->VRAM[ppu_base_pt_address(p) | pt_offset];
 	p->pt_lo_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
-	//printf("PT ADDR %X", ppu_base_pt_address(p) + pt_offset);
+	//printf("PT ADDR %X", ppu_base_pt_address(p) | pt_offset);
 }
 
 
 void fetch_pt_hi(PPU_Struct *p)
 {
-	uint16_t pt_offset = (p->nt_byte << 4) + (p->scanline & 7) + 8;
-	//p->pt_hi_latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
-	uint8_t latch = p->VRAM[ppu_base_pt_address(p) + pt_offset];
+	uint16_t pt_offset = (p->nt_byte << 4) + ((p->vram_addr  & 0x7000) >> 12) + 8;
+	uint8_t latch = p->VRAM[ppu_base_pt_address(p) | pt_offset];
 	p->pt_hi_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
 }
 
-/*
-void shift_registers(PPU_Struct *p)
-{
-	p->pt_hi_shift_reg >>= 1;
-	p->pt_lo_shift_reg >>= 1;
-}
-*/
 
 void render_pixel(PPU_Struct *p)
 {
@@ -402,15 +456,8 @@ void render_pixel(PPU_Struct *p)
 	palette_addr <<= 2;
 
 	palette_addr += 0x3F00; // Palette mem starts here
-	// Palette address is stuck at 3F00
-	// SEE CYC:114 on scanline 249, pal address should equal 3F04 not 3f00
-	// LINE: 161108
-	// AT BYTE (CURRENT IS 0 at the wrong times from NAMETABLE 2220 onwards AtByte = 55 or AA)
 	printf("PAL_ADDR: %X", palette_addr);
 
-	/* 0 - 4 offset for Palette memory - defines the colour */
-	// @ CYC 25 palette offset should equal 1 but instead equals 3
-	// Concat formula is correct thus error must be in loading the shift registers
 	unsigned palette_offset = ((p->pt_hi_shift_reg & 0x01) << 1) | (p->pt_lo_shift_reg & 0x01);
 	printf("   PAL: %X", palette_offset + palette_addr);
 	printf("   AT BYTE %X", p->at_latch);
@@ -470,61 +517,135 @@ void ppu_step(PPU_Struct *p, CPU_6502* NESCPU)
 	}
 
 	/* Process scanlines */
-	if (p->scanline <= 239) { /* Visible scanlines */
-		if (p->cycle <= 256 && (p->cycle != 0)) { // 0 is an idle cycle
-			// write to pixel buffer each cycle
-			render_pixel(p); // Render pixel every cycle
-			switch ((p->cycle - 1) & 0x07) {
-			case 0:
-				fetch_nt_byte(p);
-				break;
-			case 2:
-				fetch_at_byte(p);
-				break;
-			case 4:
-				fetch_pt_lo(p);
-				break;
-			case 6:
-				fetch_pt_hi(p);
-				break;
-			case 7: /* 8th Cycle */
-				// 8 Shifts should have occured by now, load new data
-				p->at_current = p->at_next;
-				p->at_next = p->at_latch;
-				/* Load latched values into upper byte of shift regs */
-				p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
-				p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
-				/* Used for palette calculations */
-				p->nt_addr_current = p->nt_addr_next;
-				p->nt_addr_next = p->nt_addr_tmp;
-				break;
+	if(ppu_show_bg(p)) {
+		if (p->scanline <= 239) { /* Visible scanlines */
+			if (p->cycle <= 256 && (p->cycle != 0)) { // 0 is an idle cycle
+				// write to pixel buffer each cycle
+				render_pixel(p); // Render pixel every cycle
+				switch ((p->cycle - 1) & 0x07) {
+				case 0:
+					fetch_nt_byte(p);
+					break;
+				case 2:
+					fetch_at_byte(p);
+					break;
+				case 4:
+					fetch_pt_lo(p);
+					break;
+				case 6:
+					fetch_pt_hi(p);
+					break;
+				case 7: /* 8th Cycle */
+					// 8 Shifts should have occured by now, load new data
+					p->at_current = p->at_next;
+					p->at_next = p->at_latch;
+					/* Load latched values into upper byte of shift regs */
+					p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
+					p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
+					/* Used for palette calculations */
+					p->nt_addr_current = p->nt_addr_next;
+					p->nt_addr_next = p->nt_addr_tmp;
+					// Update Scroll
+					inc_horz_scroll(p);
+					break;
+				}
+				if (p->cycle == 256) {
+					inc_vert_scroll(p); // causes seg fault
+				}
+			} else if (p->cycle == 257) {
+				// Copy horz scroll bits from t
+				p->vram_addr = (p->vram_addr & ~0x041F) | (p->vram_tmp_addr & 0x041F);
+			} else if (p->cycle >= 321 && p->cycle <= 336) { // 1st 16 pixels of next scanline
+				switch ((p->cycle - 1) & 0x07) {
+				case 0:
+					fetch_nt_byte(p);
+					break;
+				case 2:
+					fetch_at_byte(p);
+					break;
+				case 4:
+					fetch_pt_lo(p);
+					break;
+				case 6:
+					fetch_pt_hi(p);
+					/* Load latched values into upper byte of shift regs */
+					p->pt_hi_shift_reg >>= 8; // Think i need this to set up the shift reg properly
+					p->pt_lo_shift_reg >>= 8; // It fills the first 16 pixels properly
+					p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
+					p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
+					p->at_current = p->at_next; // Current is 1st loaded w/ garbage
+					p->at_next = p->at_latch;
+					p->nt_addr_current = p->nt_addr_next;
+					p->nt_addr_next = p->nt_addr_tmp;
+					break;
+				case 7:
+					// Update Scroll
+					inc_horz_scroll(p);
+					break;
+				}
 			}
-		} else if (p->cycle >= 321 && p->cycle <= 336) { // 1st 16 pixels of next scanline
-			switch ((p->cycle - 1) & 0x07) {
-			case 0:
-				fetch_nt_byte(p);
-				break;
-			case 2:
-				fetch_at_byte(p);
-				break;
-			case 4:
-				fetch_pt_lo(p);
-				break;
-			case 6:
-				fetch_pt_hi(p);
-				/* Load latched values into upper byte of shift regs */
-				p->pt_hi_shift_reg >>= 8; // Think i need this to set up the shift reg properly
-				p->pt_lo_shift_reg >>= 8; // It fills the first 16 pixels properly
-				p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
-				p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
-				p->at_current = p->at_next; // Current is 1st loaded w/ garbage
-				p->at_next = p->at_latch;
-				p->nt_addr_current = p->nt_addr_next;
-				p->nt_addr_next = p->nt_addr_tmp;
-				break;
+		} else if (p->scanline == 240) {
+			draw_pixels(pixels, nes_screen); // Render frame
+		} else if (p->scanline == 261) {
+			// Pre-render scanline
+			if (p->cycle <= 256 && (p->cycle != 0)) { // 0 is an idle cycle
+				switch ((p->cycle - 1) & 0x07) {
+				case 0:
+					fetch_nt_byte(p);
+					break;
+				case 2:
+					fetch_at_byte(p);
+					break;
+				case 4:
+					fetch_pt_lo(p);
+					break;
+				case 6:
+					fetch_pt_hi(p);
+					break;
+				case 7:
+					// No need to fill shift registers as nothing is being rendered here
+					// Update scroll
+					inc_horz_scroll(p);
+					break;
+				}
+				if (p->cycle == 256) {
+					inc_vert_scroll(p); // causes seg fault
+				}
+			} else if (p->cycle == 257) {
+				// Copy horz scroll bits from t
+				p->vram_addr = (p->vram_addr & ~0x041F) | (p->vram_tmp_addr & 0x041F);
+			} else if (p->cycle >= 280 && p->cycle <= 304) {
+				// Copy horz scroll bits from t
+				p->vram_addr = (p->vram_addr & ~0x7BE0) | (p->vram_tmp_addr & 0x7BE0);
+			} else if (p->cycle >= 321 && p->cycle <= 336) { // 1st 16 pixels of next scanline
+				switch ((p->cycle - 1) & 0x07) {
+				case 0:
+					fetch_nt_byte(p);
+					break;
+				case 2:
+					fetch_at_byte(p);
+					break;
+				case 4:
+					fetch_pt_lo(p);
+					break;
+				case 6:
+					fetch_pt_hi(p);
+					/* Load latched values into upper byte of shift regs */
+					p->pt_hi_shift_reg >>= 8; // Think i need this to set up the shift reg properly
+					p->pt_lo_shift_reg >>= 8; // It fills the first 16 pixels properly
+					p->pt_hi_shift_reg |= (uint16_t) (p->pt_hi_latch << 8);
+					p->pt_lo_shift_reg |= (uint16_t) (p->pt_lo_latch << 8);
+					p->at_current = p->at_next; // Current is 1st loaded w/ garbage
+					p->at_next = p->at_latch;
+					p->nt_addr_current = p->nt_addr_next;
+					p->nt_addr_next = p->nt_addr_tmp;
+					break;
+				case 7:
+					// Update Scroll
+					inc_horz_scroll(p);
+					break;
+				}
 			}
 		}
-	} else if (p->scanline == 240) {
-		draw_pixels(pixels, nes_screen); // Render frame
 	}
 }

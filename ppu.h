@@ -24,6 +24,8 @@ typedef struct {
 	uint8_t PPU_ADDR;   /* $2006 */
 	uint8_t PPU_DATA;   /* $2007 */
 
+	uint8_t buffer_2007; /* Read buffer for register 2007 */
+
 	uint8_t VRAM[16 * KiB]; /* PPU memory space (VRAM) */
 	uint8_t OAM[256]; /* OAM Address Space */
 
@@ -79,7 +81,7 @@ void write_vram(uint8_t data, PPU_Struct *p);
 
 uint8_t read_2002(PPU_Struct *p);
 //uint8_t read_2004(uint16_t addr, PPU_Struct *p);
-//uint8_t read_2007(uint16_t addr, PPU_Struct *p);
+uint8_t read_2007(PPU_Struct *p);
 
 void write_2000(uint8_t data, PPU_Struct *p); /* PPU_CTRL */
 void write_2004(uint8_t data, PPU_Struct *p); /* OAM_DATA */
@@ -98,12 +100,12 @@ uint16_t ppu_base_pt_address(PPU_Struct *p);
 //uint8_t ppu_sprite_height();
 //bool ppu_gen_nmi();
 
-/* PPU_CTRL FUNCTIONS */
+/* PPU_MASK FUNCTIONS */
 //bool ppu_show_greyscale();
 //bool ppu_bg_show_left_8();
 //bool ppu_sprite_show_left_8();
-//bool ppu_show_bg();
-//bool ppu_show_sprite();
+bool ppu_show_bg(PPU_Struct *p);
+bool ppu_show_sprite(PPU_Struct *p);
 //bool ppu_intense_reds();
 //bool ppu_intense_greens();
 //bool ppu_intense_blues();
@@ -112,6 +114,9 @@ uint16_t ppu_base_pt_address(PPU_Struct *p);
 //bool ppu_sprite_overflow();
 //bool ppu_sprite_0_hit();
 //bool ppu_vblank();
+
+void inc_vert_scroll(PPU_Struct *p);
+void inc_horz_scroll(PPU_Struct *p);
 
 void fetch_nt_byte(PPU_Struct *p);
 void fetch_at_byte(PPU_Struct *p);
