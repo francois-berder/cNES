@@ -102,6 +102,42 @@ void ppu_reset(int start, PPU_Struct *p)
 	}
 }
 
+void append_ppu_info(void)
+{
+	printf(" PPU_CYC: %-3d", PPU->old_cycle);
+	printf(" SL: %d\n", (PPU->scanline));
+}
+
+void debug_ppu_regs(void)
+{
+	printf("2000: %.2X\n", read_addr(NES, 0x2000));
+	printf("2001: %.2X\n", read_addr(NES, 0x2001));
+	printf("2002: %.2X\n", read_addr(NES, 0x2002));
+	printf("2003: %.2X\n", read_addr(NES, 0x2003));
+	printf("2004: %.2X\n", read_addr(NES, 0x2004));
+	printf("2005: %.2X\n", read_addr(NES, 0x2005));
+	printf("2006: %.2X\n", read_addr(NES, 0x2006));
+	printf("2007: %.2X\n", read_addr(NES, 0x2007));
+	printf("3F00: %.2X\n", read_addr(NES, 0x3F00));
+	printf("3F01: %.2X\n\n", read_addr(NES, 0x3F01));
+}
+
+// pass a struct into the argument, then arg.start is mem and arg.count = byte
+void PPU_MEM_DEBUG(void)
+{
+	printf("      00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
+	unsigned int addr = 0; // Byte count
+	unsigned int mem = 0;  // Start address
+	while (addr < 1024) {
+		printf("%.4X: ", addr << 4);
+		for (int x = 0; x < 16; x++) {
+			printf("%.2X ", PPU->VRAM[mem]);
+			++mem;
+		}
+		printf("\n");
+		++addr;
+	}
+}
 
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
 {
@@ -119,6 +155,7 @@ uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p)
 		read_2007(p);
 		break;
 	}
+	return p->return_value;
 }
 
 /* CPU uses this function */
@@ -154,6 +191,9 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p)
 		/* PPU DATA */
 		p->PPU_DATA = data;
 		write_2007(data, p);
+		break;
+	case (0x4014):
+		write_4014(data, p, NES);
 		break;
 	}
 }
@@ -195,35 +235,41 @@ void write_vram(uint8_t data, PPU_Struct *p)
 	}
 
 	/* Write to palettes */
-	if (addr >= 0x3F00) {
+	if (addr >= 0x3F00 && addr < 0x3F10) {
 		p->VRAM[addr] = data;
+		if ((addr & 0x03) == 0) {
+			p->VRAM[addr + 0x10] = data; // If palette #0 mirror 4 palettes up
+		}
+	} else if (addr >= 0x3F10 && addr < 0x3F20) {
+		p->VRAM[addr] = data;
+		if ((addr & 0x03) == 0) {
+			p->VRAM[addr - 0x10] = data; // If palette #0 mirror 4 palettes down
+		}
 	}
 }
 
 /* Read Functions */
 
-uint8_t read_2002(PPU_Struct *p)
+void read_2002(PPU_Struct *p)
 {
-	p->temp = p->PPU_STATUS;
+	p->return_value = p->PPU_STATUS;
 	p->PPU_STATUS &= ~(0x80);
 	p->toggle_w = false; // Clear latch used by PPUSCROLL & PPUADDR
-	return p->temp;
 }
 
-uint8_t read_2007(PPU_Struct *p)
+void read_2007(PPU_Struct *p)
 {
 	uint16_t addr = p->vram_addr & 0x3FFF;
-	uint8_t ret = 0; // return value
+	//uint8_t ret = 0; // return value
 
-	ret = p->buffer_2007;
+	p->return_value = p->buffer_2007;
 	p->buffer_2007 = p->VRAM[addr];
 
 	if (addr >= 0x3F00) {
-		ret = p->VRAM[addr];
+		p->return_value = p->VRAM[addr];
 	}
 
 	p->vram_addr += ppu_vram_addr_inc(p);
-	return ret;
 }
 
 /* Write Functions */
@@ -286,17 +332,13 @@ void write_2007(uint8_t data, PPU_Struct *p)
 }
 
 
-/* FUNCTION FOR PPU MEM 
-uint8_t read_PPU(uint16_t addr, PPU_Struct *p)
+void write_4014(uint8_t data, PPU_Struct *p, CPU_6502* NESCPU)
 {
-	if (addr < 0x1000) {
-		return p->PPU->MEM[addr];
-	}  / else if ... /
-	else {
-		return p->PPU->MEM[addr];
+	NESCPU->DMA_PENDING = 1;
+	for (int i = 0; i < 256; i++) {
+		write_2004(NESCPU->RAM[(data << 8) + i], p);
 	}
 }
-*/
 
 /**
  * PPU_CTRL
@@ -329,11 +371,28 @@ uint16_t ppu_base_nt_address(PPU_Struct *p)
 
 uint16_t ppu_base_pt_address(PPU_Struct *p)
 {
-	switch((p->PPU_CTRL >> 4) & 0x01) {
-	case 0:
-		return 0x0000;
-	case 1:
+	if ((p->PPU_CTRL >> 4) & 0x01) {
 		return 0x1000;
+	} else {
+		return 0x0000;
+	}
+}
+
+uint16_t ppu_sprite_pattern_table_addr(PPU_Struct *p)
+{
+	if ((p->PPU_CTRL >> 3) & 0x01) {
+		return 0x0000;
+	} else {
+		return 0x1000;
+	}
+}
+
+uint8_t ppu_sprite_height(PPU_Struct *p)
+{
+	if ((p->PPU_CTRL >> 5) & 0x01) {
+		return 8; /* 8 x 8 */
+	} else {
+		return 16; /* 8 x 16 */
 	}
 }
 
@@ -373,7 +432,6 @@ void inc_vert_scroll(PPU_Struct *p)
 	} else {
 		addr &= ~0x7000; // fine Y = 0
 		int y = (addr & 0x03E0) >> 5; // y = coarse Y
-		printf("1\n");
 		if (y == 29) {
 			y = 0; // coarse Y = 0
 			addr ^= 0x0800; // Switch vertical nametable
@@ -407,7 +465,6 @@ void fetch_nt_byte(PPU_Struct *p)
 void fetch_at_byte(PPU_Struct *p)
 {
 	p->at_latch = p->VRAM[0x23C0 | (p->vram_addr & 0x0C00) | ((p->vram_addr >> 4) & 0x38) | ((p->vram_addr >> 2) & 0x07)];
-	//printf("   AT ADDR %X  ", at_addr + at_offset);
 }
 
 /* Lo & Hi determine which index of the colour palette we use (0 to 3) */
@@ -416,7 +473,6 @@ void fetch_pt_lo(PPU_Struct *p)
 	uint16_t pt_offset = (p->nt_byte << 4) + ((p->vram_addr  & 0x7000) >> 12);
 	uint8_t latch = p->VRAM[ppu_base_pt_address(p) | pt_offset];
 	p->pt_lo_latch = reverse_bits[latch]; // 8th bit = 1st pixel to render
-	//printf("PT ADDR %X", ppu_base_pt_address(p) | pt_offset);
 }
 
 
@@ -430,48 +486,40 @@ void fetch_pt_hi(PPU_Struct *p)
 
 void render_pixel(PPU_Struct *p)
 {
-
 	unsigned palette_addr;
-	/* - Defines the Colour palette */
-	printf("    NT ADDRESS: %.4X  ", p->nt_addr_current);
-	printf("    AT ADDR %X  ", 0x23C0 + ((p->cycle >= 321) ? (p->cycle/32) : ((p->cycle/32) + ((p->scanline/32)*8))));
-	if (p->nt_addr_current & 0x01) {
-		// Right
-		if (p->nt_addr_current & 0x20) {
-			// Bottom 
-			palette_addr = p->at_current >> 6;
+	/* Defines the which colour palette to use */
+	if ((p->nt_addr_current & 0x03) == 0x03) { // Right quadrants
+		if ((p->nt_addr_current & 0x40) == 0x40) {
+			palette_addr = p->at_current >> 6; // Bottom quadrant
 		} else {
-			// Top
-			palette_addr = p->at_current >> 2;
+			palette_addr = p->at_current >> 2; // Top quadrant
 		}
-	} else { // Left quad
-		if (p->nt_addr_current & 0x20) { // Bottom
-			palette_addr = p->at_current >> 4;
+	} else { // Left quadrants
+		if ((p->nt_addr_current & 0x40) == 0x40) {
+			palette_addr = p->at_current >> 4; // Bottom quadrant
 		} else {
-			// Top
-			palette_addr = p->at_current & 0x0003;
+			palette_addr = p->at_current & 0x0003; // Top quadrant
 		}
 	}
 	palette_addr &= 0x03;
 	palette_addr <<= 2;
 
 	palette_addr += 0x3F00; // Palette mem starts here
-	printf("PAL_ADDR: %X", palette_addr);
+	//printf("PAL_ADDR: %X", palette_addr);
 
 	unsigned palette_offset = ((p->pt_hi_shift_reg & 0x01) << 1) | (p->pt_lo_shift_reg & 0x01);
-	printf("   PAL: %X", palette_offset + palette_addr);
-	printf("   AT BYTE %X", p->at_latch);
-	printf("   HIGH: %d, LOW: %d", ((p->pt_hi_shift_reg & 0x01) << 1), (p->pt_lo_shift_reg & 0x01));
+	if (!palette_offset) {
+		if (palette_addr < 0x3F10) {
+			palette_addr = 0x3F00; // Take background colour
+		} else {
+			palette_addr = 0x3F10; // Take background colour
+		}
+	}
 
 	unsigned RGB = p->VRAM[palette_addr + palette_offset]; // Get values
 
 	/* Reverse Bits */
-	//printf("A: %d\n", (p->cycle + (256 * p->scanline) - 1)); // Place in palette array, alpha set to 0xFF
 	pixels[(p->cycle + (256 * p->scanline) - 1)] = 0xFF000000 | palette[RGB]; // Place in palette array, alpha set to 0xFF
-	printf("   PALETTE = %X", palette[RGB]);
-	printf("   NT BYTE %X", p->nt_byte);
-	printf("   CYC = %d", p->cycle);
-	printf("   SL = %d\n", p->scanline);
 
 	/* Shift each cycle */
 	p->pt_hi_shift_reg >>= 1;
@@ -507,7 +555,7 @@ void ppu_step(PPU_Struct *p, CPU_6502* NESCPU)
 	if (p->scanline == p->nmi_start) {
 		if ((p->PPU_CTRL & 0x80) == 0x80) { /* if PPU CTRL has execute NMI on VBlank */
 			p->PPU_STATUS |= 0x80; /* In VBlank */
-			if ((p->cycle - 3) == 7) { // 7 --> delay by One PPU Cycle
+			if ((p->cycle - 3) == 5) { // 7 --> delay by One PPU Cycle, was 7 now 5
 				NESCPU->NMI_PENDING = 1;
 			}
 		}

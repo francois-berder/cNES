@@ -34,6 +34,14 @@ typedef struct {
 	uint8_t RAM[MEMORY_SIZE]; /* 2 Kb internal RAM */
 
 	unsigned NMI_PENDING; /* Needed to trigger NMI - takes values 0 & 1 */
+	unsigned DMA_PENDING; /* Needed to trigger NMI - takes values 0 & 1 */
+
+	/* Remove globals, place in cpu.h instead
+	uint8_t targetAddressLowByte; // Low byte operand
+	uint8_t targetAddressHighByte; // High byte operand
+	size_t targetAddress; // could just make uint16_t
+	uint8_t operand;
+	*/
 
 	/* Previous Values - for Disassembler */
 	uint8_t old_A;

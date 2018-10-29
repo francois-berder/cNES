@@ -18,7 +18,6 @@ CPU_6502* NES_CPU(uint16_t pc_init)
 	i->Y = 0;
 	i->NMI_PENDING = 0;
 	memset(i->RAM, 0, MEMORY_SIZE); /* Initialise RAM to 0 */
-	//*i->RAM = (uint8_t*) calloc(MEMORY_SIZE, sizeof(uint8_t)); also works
 	return i;
 }
 
@@ -27,7 +26,6 @@ void NES_PC(CPU_6502* NES)
 	NES->PC = fetch_16(NES, 0xFFFC);
 }
 
-/*********** ADD TO CPU.H **************/
 /*** WILL REPLACE get_op functions *******/
 uint8_t read_addr(CPU_6502* NES, uint16_t addr)
 {
@@ -61,8 +59,9 @@ void write_addr(CPU_6502* NES, uint16_t addr, uint8_t val)
 	} else if (addr < 0x4000) {
 		NES->RAM[addr & 0x2007] = val;
 		write_PPU_Reg(addr & 0x2007, val, PPU);
-	}
-	else {
+	} else if (addr == 0x4014) {
+		write_PPU_Reg(addr, val, PPU);
+	} else {
 		NES->RAM[addr] = val;
 	}
 }

@@ -1,5 +1,4 @@
 *.o
 *.nes
 *.txt
-debug_emu
 emu

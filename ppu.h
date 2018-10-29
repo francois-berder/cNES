@@ -24,10 +24,12 @@ typedef struct {
 	uint8_t PPU_ADDR;   /* $2006 */
 	uint8_t PPU_DATA;   /* $2007 */
 
+	uint8_t return_value;
+
 	uint8_t buffer_2007; /* Read buffer for register 2007 */
 
 	uint8_t VRAM[16 * KiB]; /* PPU memory space (VRAM) */
-	uint8_t OAM[256]; /* OAM Address Space */
+	uint8_t OAM[256]; /* OAM Address Space (Sprite RAM) */
 
 	/* BACKROUND */
 	uint16_t vram_addr; /* VRAM address - LoopyV (v) */
@@ -59,8 +61,12 @@ typedef struct {
 	uint32_t scanline; /* Pre-render = 261, visible = 0 - 239, post-render 240 - 260 */
 	uint32_t nmi_start; /* Scanline in which NMI starts - set value depending on NTSC or PAL */
 	const uint32_t nmi_end; /* Scanline in which NMI end */
-	uint32_t cycle; /* PPU Cycles, each PPU mem access takes 2 cycles */
-	uint32_t old_cycle; /* */
+	uint16_t cycle; /* PPU Cycles, each PPU mem access takes 2 cycles */
+	uint16_t old_cycle; /* Runs much quicker when 16 wide instead of 32 and fixes a weird overflow bug */
+
+	// Debug constants
+	//const uint8_t DEBUG_ALL; //1024
+	//const uint8_t DEBUG_256; // Debug a page area
 } PPU_Struct;
 
 /* Global defintions */
@@ -72,6 +78,11 @@ PPU_Struct *PPU; /* Global NES PPU Pointer */
 PPU_Struct *ppu_init();
 void ppu_reset(int start, PPU_Struct *p); /* Emulates reset/warm-up of PPU */
 
+/* Debug Functions */
+void append_ppu_info(void);
+void debug_ppu_regs(void);
+void PPU_MEM_DEBUG(void);
+
 /* Read & Write Functions */
 //uint8_t read_PPU();
 uint8_t read_PPU_Reg(uint16_t addr, PPU_Struct *p); /* For addresses exposed to CPU */
@@ -79,15 +90,16 @@ void write_PPU_Reg(uint16_t addr, uint8_t data, PPU_Struct *p); /* For addresses
 
 void write_vram(uint8_t data, PPU_Struct *p);
 
-uint8_t read_2002(PPU_Struct *p);
+void read_2002(PPU_Struct *p);
 //uint8_t read_2004(uint16_t addr, PPU_Struct *p);
-uint8_t read_2007(PPU_Struct *p);
+void read_2007(PPU_Struct *p);
 
 void write_2000(uint8_t data, PPU_Struct *p); /* PPU_CTRL */
 void write_2004(uint8_t data, PPU_Struct *p); /* OAM_DATA */
 void write_2005(uint8_t data, PPU_Struct *p); /* PPU_SCROLL */
 void write_2006(uint8_t data, PPU_Struct *p); /* PPU_ADDR */
 void write_2007(uint8_t data, PPU_Struct *p); /* PPU_DATA */
+void write_4014(uint8_t data, PPU_Struct *p, CPU_6502* NESCPU); /* DMA_DATA */
 
 
 /* PPU_CTRL FUNCTIONS */
@@ -95,9 +107,9 @@ void write_2007(uint8_t data, PPU_Struct *p); /* PPU_DATA */
 uint8_t ppu_vram_addr_inc(PPU_Struct *p);
 uint16_t ppu_base_nt_address(PPU_Struct *p);
 uint16_t ppu_base_pt_address(PPU_Struct *p);
-//uint16_t ppu_sprite_pattern_table_addr();
+uint16_t ppu_sprite_pattern_table_addr(PPU_Struct *p);
 //uint16_t ppu_bg_pattern_table_addr();
-//uint8_t ppu_sprite_height();
+uint8_t ppu_sprite_height(PPU_Struct *p);
 //bool ppu_gen_nmi();
 
 /* PPU_MASK FUNCTIONS */

@@ -95,6 +95,7 @@ void execute_SEI(CPU_6502 *NESCPU);
 void execute_BRK(void);
 void execute_NOP(void);
 void execute_IRQ(void);
-void execute_NMI(void);
+void execute_NMI(void); // Not an official opcode
+void execute_DMA(void); // Not an official opcode
 
 #endif /* __6502_FUNCTIONS__ */

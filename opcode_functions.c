@@ -203,7 +203,7 @@ void execute_ADC(enum MODES address_mode, size_t operand)
  */
 void execute_DEC(size_t operand)
 {
-	strcpy(instruction, "DEC");
+	strcpy(instruction, "DEC ");
 	strcat(instruction, end);
 	write_addr(NES, operand, read_addr(NES, operand) - 1);
 	update_FLAG_N(read_addr(NES, operand));
@@ -240,7 +240,6 @@ void execute_DEY(void)
 void execute_INC(size_t operand)
 {
 	strcpy(instruction, "INC");
-	strcat(instruction, end);
 	write_addr(NES, operand, read_addr(NES, operand) + 1);
 	update_FLAG_N(read_addr(NES, operand));
 	update_FLAG_Z(read_addr(NES, operand));
@@ -447,6 +446,7 @@ void execute_ORA(enum MODES address_mode, size_t operand)
  */
 void execute_ROL(enum MODES address_mode, size_t operand)
 {
+	//uint8_t maskMSB;  // Replace tmp w/ something like this
 	if (address_mode == ACC) {
 		/* Accumulator - ROL #Operand */
 		strcpy(instruction, "ROL A");
@@ -522,9 +522,8 @@ void execute_BCC(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_C) == 0x00) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -540,9 +539,8 @@ void execute_BCS(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_C) == 0x01) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -558,9 +556,8 @@ void execute_BEQ(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_Z) == FLAG_Z) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -576,9 +573,8 @@ void execute_BMI(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_N) == FLAG_N) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -594,9 +590,8 @@ void execute_BNE(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_Z) == 0x00) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -612,9 +607,8 @@ void execute_BPL(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_N) == 0x00) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -630,9 +624,8 @@ void execute_BVC(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_V) == 0x00) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -648,9 +641,8 @@ void execute_BVS(uint8_t *ptr_code)
 	strcat(instruction, append_int);
 
 	if ((NES->P & FLAG_V) == FLAG_V) {
-		tmp = NES->PC + 2;
 		NES->PC += (int8_t) *(ptr_code+1);
-		NES->Cycle += 1 + PAGE_CROSS(tmp, NES->PC);
+		NES->Cycle += 1 + PAGE_CROSS(NES->old_PC + 2, NES->PC + 2);
 	}
 	NES->PC += 2;
 }
@@ -918,7 +910,8 @@ void execute_IRQ(void)
 
 void execute_NMI(void)
 {
-	strcpy(instruction, "NMI");
+	strcpy(end, " + NMI");
+	strcat(instruction, end);
 	/* PC is pushed onto stack, high byte first */
 	PUSH((uint8_t) (NES->PC >> 8)); /* Push PCH (PC High byte onto stack) */
 	PUSH((uint8_t) NES->PC); /* Push PCL (PC Low byte onto stack) */
@@ -928,4 +921,12 @@ void execute_NMI(void)
 	NES->P |= FLAG_I;
 	NES->PC = (read_addr(NES, 0xFFFB) << 8) | read_addr(NES, 0xFFFA);
 	NES->NMI_PENDING = 0;
+}
+
+
+void execute_DMA(void)
+{
+	/* Actual execution occurs via PPU */
+	strcpy(end, " + DMA");
+	strcat(instruction, end);
 }
