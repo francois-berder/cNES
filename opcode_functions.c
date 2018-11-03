@@ -22,7 +22,7 @@ void execute_LDA(enum MODES address_mode, CPU_6502* CPU)
 {
 	if (address_mode == IMM) {
 		strcpy(instruction, "LDA #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		CPU->A = CPU->operand;
 	} else {
@@ -42,10 +42,10 @@ void execute_LDX(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		CPU->X = CPU->operand;
 		strcpy(instruction, "LDX #$");
-		sprintf(append_int, "%.2zX", NES->operand);
+		sprintf(append_int, "%.2X", NES->operand);
 		strcat(instruction, append_int);
 	} else {
-		//printf("LDX $%.4zX    ", operand);
+		//printf("LDX $%.4X    ", operand);
 		strcpy(instruction, "LDX ");
 		strcat(instruction, end);
 		CPU->X = read_addr(CPU, CPU->target_addr);
@@ -61,7 +61,7 @@ void execute_LDY(enum MODES address_mode, CPU_6502* CPU)
 {
 	if (address_mode == IMM) {
 		strcpy(instruction, "LDY #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		CPU->Y = CPU->operand;
 	} else {
@@ -179,7 +179,7 @@ void execute_ADC(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - ADC #Operand */
 		strcpy(instruction, "ADC #$");
-		sprintf(append_int, "%zX", CPU->operand);
+		sprintf(append_int, "%X", CPU->operand);
 		strcat(instruction, append_int);
 		Base10toBase2(CPU->operand, bin_operand2);
 	} else {
@@ -278,7 +278,7 @@ void execute_SBC(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - SBC #Operand */
 		strcpy(instruction, "SBC #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		Base10toBase2(CPU->operand ^ 0xFF, bin_operand2);
 	} else {
@@ -305,7 +305,7 @@ void execute_AND(enum MODES address_mode, CPU_6502* CPU)
 {
 	if (address_mode == IMM) {
 		strcpy(instruction, "AND #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		CPU->A &= CPU->operand;
 	} else {
@@ -384,7 +384,7 @@ void execute_EOR(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - AND #Operand */
 		strcpy(instruction, "EOR #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		CPU->A ^= CPU->operand;
 	} else {
@@ -429,7 +429,7 @@ void execute_ORA(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - AND #Operand */
 		strcpy(instruction, "ORA #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		CPU->A |= CPU->operand;
 	} else {
@@ -768,7 +768,7 @@ void execute_CMP(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - SBC #Operand */
 		strcpy(instruction, "CMP #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		Base10toBase2(CPU->operand ^ 0xFF, bin_operand2);
 	} else {
@@ -794,7 +794,7 @@ void execute_CPX(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - SBC #Operand */
 		strcpy(instruction, "CPX #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		Base10toBase2(CPU->operand ^ 0xFF, bin_operand2);
 	} else {
@@ -819,7 +819,7 @@ void execute_CPY(enum MODES address_mode, CPU_6502* CPU)
 	if (address_mode == IMM) {
 		/* Immediate - SBC #Operand */
 		strcpy(instruction, "CPY #$");
-		sprintf(append_int, "%.2zX", CPU->operand);
+		sprintf(append_int, "%.2X", CPU->operand);
 		strcat(instruction, append_int);
 		Base10toBase2(CPU->operand ^ 0xFF, bin_operand2);
 	} else {
