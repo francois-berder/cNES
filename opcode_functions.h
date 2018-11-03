@@ -69,7 +69,7 @@ void execute_BVS(uint8_t *ptr_code);
  * JUMP                    *
  * *************************/
 void execute_JMP(size_t operand);
-void execute_JSR(size_t operand);
+void execute_JSR(void);
 void execute_RTI(void);
 void execute_RTS(void);
 

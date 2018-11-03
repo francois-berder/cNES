@@ -86,7 +86,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_ORA(INDY, operand);
 			NES->Cycle += 5; // Branch not taken, +1 if taken (in execute function)
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x15:
 			/* ORA - Zero Page X mode */
@@ -114,7 +114,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_ORA(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x1D:
 			/* ORA - Absolute X mode */
@@ -122,7 +122,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_ORA(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0x1E:
 			/* ASL - Absolute X mode */
@@ -134,7 +134,7 @@ void CPU_6502_STEP(uint16_t PC)
 		case 0x20:
 			/* JSR - Absolute mode*/
 			operand = get_op_ABS_offset(opcode, 0);
-			execute_JSR(operand);
+			execute_JSR();
 			NES->Cycle += 6;
 			break;
 		case 0x21:
@@ -160,7 +160,6 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_ZP_offset(opcode, 0);
 			execute_ROL(ZP, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, tmp); // REPLACE tmp
 			break;
 		case 0x28:
 			/* PLP */
@@ -210,7 +209,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_AND(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x35:
 			/* AND - Zero Page X mode*/
@@ -238,7 +237,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_AND(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x3D:
 			/* AND - Absolute X mode */
@@ -246,7 +245,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_AND(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0x3E:
 			/* ROL - Absolute X mode */
@@ -325,7 +324,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_EOR(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x55:
 			/* EOR - Zero Page X mode */
@@ -353,7 +352,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_EOR(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x5D:
 			/* EOR - Absolute X mode */
@@ -361,7 +360,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_EOR(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0x5E:
 			/* LSR - Absolute X mode */
@@ -442,7 +441,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_ADC(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0x75:
 			/* ADC - Zero Page X mode */
@@ -468,7 +467,7 @@ void CPU_6502_STEP(uint16_t PC)
 			/* ADC - Absolute Y mode */
 			operand = get_op_ABS_offset(opcode, NES->Y);
 			strcat(end, ",Y");
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			execute_ADC(ABSY, operand);
 			NES->Cycle += 4;
 			break;
@@ -476,7 +475,7 @@ void CPU_6502_STEP(uint16_t PC)
 			/* ADC - Absolute X mode */
 			operand = get_op_ABS_offset(opcode, NES->X);
 			strcat(end, ",X");
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			execute_ADC(ABSX, operand);
 			NES->Cycle += 4;
 			break;
@@ -681,7 +680,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_LDA(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xB4:
 			/* LDY - Zero Page X mode */
@@ -716,7 +715,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_LDA(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xBA:
 			/* TSX */
@@ -730,7 +729,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_LDY(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0xBD:
 			/* LDA - Absolute X mode */
@@ -738,7 +737,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_LDA(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0xBE:
 			/* LDX - Absolute Y mode */
@@ -746,7 +745,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_LDX(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xC0:
 			/* CPY - Immediate mode */
@@ -824,7 +823,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_CMP(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xD5:
 			/* CMP - Zero Page X mode */
@@ -852,7 +851,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_CMP(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xDD:
 			/* CMP - Absolute X mode */
@@ -860,7 +859,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",X");
 			execute_CMP(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0xDE:
 			/* DEC - Absolute X mode */
@@ -945,7 +944,7 @@ void CPU_6502_STEP(uint16_t PC)
 			operand = get_op_INDY(opcode, NES);
 			execute_SBC(INDY, operand);
 			NES->Cycle += 5;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xF5:
 			/* SBC - Zero Page X mode */
@@ -973,7 +972,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ",Y");
 			execute_SBC(ABSY, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->Y);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->Y);
 			break;
 		case 0xFD:
 			/* SBC - Absolute X mode */
@@ -981,7 +980,7 @@ void CPU_6502_STEP(uint16_t PC)
 			strcat(end, ", X");
 			execute_SBC(ABSX, operand);
 			NES->Cycle += 4;
-			NES->Cycle += PAGE_CROSS(operand, operand - NES->X);
+			NES->Cycle += PAGE_CROSS(NES->target_addr, NES->target_addr - NES->X);
 			break;
 		case 0xFE:
 			/* INC - Absolute X mode */

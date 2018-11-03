@@ -43,6 +43,11 @@ typedef struct {
 	uint8_t operand;
 	*/
 
+	uint8_t addr_lo;
+	uint8_t addr_hi;
+	uint16_t target_addr;
+	size_t operand;
+
 	/* Previous Values - for Disassembler */
 	uint8_t old_A;
 	uint8_t old_X;
