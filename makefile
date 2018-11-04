@@ -1,37 +1,45 @@
-CC = cc
+CC = gcc
 CFLAGS = -Wall -std=c99
+LDFLAGS = $(shell pkg-config --cflags --libs sdl2)
+
+SRC= src
+OBJ= obj
+
+ALL_SRCS = $(wildcard $(SRC)/*.c)
+ALL_OBJS = $(notdir $(ALL_SRCS:.c=.o))
+
+NO_SDL_SRC := $(filter-out $(SRC)/gui.c, $(ALL_SRCS))
+NO_SDL_SRC := $(filter-out $(SRC)/emu.c, $(ALL_SRCS))
+NO_SDL_OBJ = $(notdir $(NO_SDL_SRC:.c=.o))
 
 all: emu
 
-gui.o: gui.c gui.h
-	$(CC) $(CFLAGS) -c gui.c $(shell pkg-config --cflags --libs sdl2)
+$(NO_SDL_OBJ): %.o : $(SRC)/%.h
 
-ppu.o: ppu.c ppu.h cpu.h gui.h
-	$(CC) $(CFLAGS) -c ppu.c
+$(SRC)/cpu.c: $(SRC)/ppu.h
+$(SRC)/cart.c: $(SRC)/ppu.h $(SRC)/mappers.h
+$(SRC)/mappers.c: $(SRC)/cart.h
+$(SRC)/opcode_functions.c: $(SRC)/helper_functions.h
+$(SRC)/opcode_table.c: $(SRC)/opcode_functions.h
 
-cpu.o: cpu.c cpu.h ppu.h
-	$(CC) $(CFLAGS) -c cpu.c
+%.o : $(SRC)/%.c
+	@echo "--- Compiling $@"
+	$(CC) $(CFLAGS) -c $< -o $(OBJ)/$@
 
-cart.o: cart.c cart.h
-	$(CC) $(CFLAGS) -c cart.c
+gui.o: $(SRC)/gui.*
+	@echo "--- Compiling SDL2 files (gui.c)"
+	$(CC) $(CFLAGS) -c $(SRC)/gui.c $(LDFLAGS) -o $(OBJ)/$@
+	@echo "--- Done: Compiling SDL2 files (gui.c)"
 
-mappers.o: mappers.c mappers.h
-	$(CC) $(CFLAGS) -c mappers.c
+emu.o: $(SRC)/emu.c $(SRC)/ppu.h $(SRC)/cpu.h $(SRC)/opcode_table.h
+	@echo "--- Generating $@"
+	$(CC) $(CFLAGS) -c $< -o $(OBJ)/$@
 
-helper_functions.o: helper_functions.c helper_functions.h
-	$(CC) $(CFLAGS) -c helper_functions.c
-
-opcode_functions.o: opcode_functions.c opcode_functions.h helper_functions.h
-	$(CC) $(CFLAGS) -c opcode_functions.c
-
-opcode_table.o: opcode_table.c opcode_table.h helper_functions.h opcode_functions.h
-	$(CC) $(CFLAGS) -c opcode_table.c
-
-emu.o: emu.c cpu.h opcode_table.h
-	$(CC) $(CFLAGS) -c emu.c
-
-emu: emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o gui.o
-	$(CC) $(shell pkg-config --cflags --libs sdl2) -o emu emu.o cpu.o cart.o mappers.o helper_functions.o opcode_functions.o opcode_table.o ppu.o gui.o
+emu: $(ALL_OBJS)
+	@echo "--- Linking target"
+	$(CC) $(LDFLAGS) -o emu $(addprefix obj/,$(ALL_OBJS))
+	@echo "--- Done: Linking target"
 
 clean:
-	rm *.o
+	@echo "--- Cleaning build"
+	rm $(OBJ)/*.o emu
